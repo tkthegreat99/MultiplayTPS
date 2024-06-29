@@ -42,7 +42,7 @@ ASPawn::ASPawn()
 	SpringArmComponent->TargetArmLength = 400.f;
 	SpringArmComponent->SetRelativeRotation(FRotator( - 15.f, 0.f, 0.f));
 
-	CameraComponent->CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
+	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(SpringArmComponent);
 
 #pragma endregion
