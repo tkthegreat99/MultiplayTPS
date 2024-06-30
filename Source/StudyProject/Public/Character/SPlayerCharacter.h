@@ -31,6 +31,7 @@ protected:
 
 private:
 	void InputMove(const FInputActionValue& InValue);
+	void InputLook(const FInputActionValue& InValue);
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
