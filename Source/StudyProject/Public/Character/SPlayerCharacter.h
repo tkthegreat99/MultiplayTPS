@@ -13,6 +13,17 @@ class UCameraComponent;
 class USInputConfig;
 class UInputMappingContext;
 
+UENUM(BlueprintType)
+enum class EViewMode : uint8
+{
+	None,
+	BackView,
+	QuarterView,
+	End
+};
+
+
+
 /**
  * 
  */
@@ -26,9 +37,15 @@ public:
 
 	virtual void BeginPlay() override;
 
+	virtual void PossessedBy(AController* NewController) override;
+
+	virtual void Tick(float DeltaSeconds) override;
+
+	void SetViewMode(EViewMode InViewMode);
+
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
-
+	
 private:
 	void InputMove(const FInputActionValue& InValue);
 	void InputLook(const FInputActionValue& InValue);
@@ -46,5 +63,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	TObjectPtr<UInputMappingContext> PlayerCharacterInputMappingContext;
 
+protected:
 
+	EViewMode CurrentViewMode = EViewMode::None;
+
+	FVector DirectionToMove = FVector::ZeroVector;
 };
