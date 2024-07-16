@@ -19,6 +19,7 @@ enum class EViewMode : uint8
 	None,
 	BackView,
 	QuarterView,
+	TPSView,
 	End
 };
 
@@ -43,12 +44,17 @@ public:
 
 	void SetViewMode(EViewMode InViewMode);
 
+	float GetForwardInputValue() const { return ForwardInputValue; }
+
+	float GetRightInputValue() const { return RightInputValue; }
+
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	
 private:
 	void InputMove(const FInputActionValue& InValue);
 	void InputLook(const FInputActionValue& InValue);
+	void InputChangeView(const FInputActionValue& InValue);
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
@@ -63,9 +69,23 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	TObjectPtr<UInputMappingContext> PlayerCharacterInputMappingContext;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	float ForwardInputValue;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
+	float RightInputValue;
+
 protected:
 
 	EViewMode CurrentViewMode = EViewMode::None;
 
 	FVector DirectionToMove = FVector::ZeroVector;
+
+	float DestArmLength = 0.f;
+
+	float ArmLengthChangeSpeed = 3.f;
+
+	FRotator DestArmRotation = FRotator::ZeroRotator;
+
+	float ArmRotationChangeSpeed = 10.f;
 };

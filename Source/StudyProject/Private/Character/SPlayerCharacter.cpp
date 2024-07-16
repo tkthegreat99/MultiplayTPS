@@ -12,7 +12,7 @@
 
 ASPlayerCharacter::ASPlayerCharacter()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
 	SpringArmComponent->SetupAttachment(RootComponent);
@@ -41,9 +41,8 @@ void ASPlayerCharacter::BeginPlay()
 void ASPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-
-	//SetViewMode(EViewMode::BackView);
-	SetViewMode(EViewMode::QuarterView);
+	//SetViewMode(EViewMode::TPSView);
+	SetViewMode(EViewMode::BackView);
 }
 
 void ASPlayerCharacter::Tick(float DeltaSeconds)
@@ -69,6 +68,12 @@ void ASPlayerCharacter::Tick(float DeltaSeconds)
 	default:
 		break;
 	}
+
+	if (KINDA_SMALL_NUMBER < abs(DestArmLength - SpringArmComponent->TargetArmLength))
+	{
+		SpringArmComponent->TargetArmLength = FMath::FInterpTo(SpringArmComponent->TargetArmLength, DestArmLength, DeltaSeconds, ArmLengthChangeSpeed);
+		SpringArmComponent->SetRelativeRotation(FMath::RInterpTo(SpringArmComponent->GetRelativeRotation(), DestArmRotation, DeltaSeconds, ArmRotationChangeSpeed));
+	}
 }
 
 void ASPlayerCharacter::SetViewMode(EViewMode InViewMode)
@@ -87,9 +92,6 @@ void ASPlayerCharacter::SetViewMode(EViewMode InViewMode)
 		bUseControllerRotationYaw = false;
 		bUseControllerRotationRoll = false;
 
-		SpringArmComponent->TargetArmLength = 400.f;
-		SpringArmComponent->SetRelativeRotation(FRotator::ZeroRotator);
-		
 
 		SpringArmComponent->bUsePawnControlRotation = true;
 
@@ -109,9 +111,6 @@ void ASPlayerCharacter::SetViewMode(EViewMode InViewMode)
 		bUseControllerRotationYaw = false;
 		bUseControllerRotationRoll = false;
 
-		SpringArmComponent->TargetArmLength = 800.f;
-		SpringArmComponent->SetRelativeRotation(FRotator(-45.f, 0.f, 0.f));
-
 		SpringArmComponent->bUsePawnControlRotation = false;
 
 		SpringArmComponent->bInheritPitch = false;
@@ -125,6 +124,31 @@ void ASPlayerCharacter::SetViewMode(EViewMode InViewMode)
 		GetCharacterMovement()->bUseControllerDesiredRotation = true;
 		
 		break;
+	
+	case EViewMode::TPSView:
+	{
+		bUseControllerRotationPitch = false;
+		bUseControllerRotationYaw = true;
+		bUseControllerRotationRoll = false;
+
+		SpringArmComponent->TargetArmLength = 400.f;
+
+		SpringArmComponent->bUsePawnControlRotation = true;
+
+		SpringArmComponent->bInheritPitch = true;
+		SpringArmComponent->bInheritYaw = true;
+		SpringArmComponent->bInheritRoll = false;
+
+		SpringArmComponent->bDoCollisionTest = true;
+
+		SpringArmComponent->SetRelativeLocation(FVector(0.f, 50.f, 50.f));
+
+		GetCharacterMovement()->RotationRate = FRotator(0.f, 360.f, 0.f);
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+
+		break;
+	}
 
 	case EViewMode::None:
 	case EViewMode::End:
@@ -142,6 +166,7 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	{
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Move, ETriggerEvent::Triggered, this, &ThisClass::InputMove);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Look, ETriggerEvent::Triggered, this, &ThisClass::InputLook);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->ChangeView, ETriggerEvent::Started, this, &ThisClass::InputChangeView);
 	}
 }
 
@@ -151,6 +176,7 @@ void ASPlayerCharacter::InputMove(const FInputActionValue& InValue)
 
 	switch (CurrentViewMode)
 	{
+	case EViewMode::TPSView:
 	case EViewMode::BackView:
 	{ 
 		const FRotator ControlRotation = GetController()->GetControlRotation();
@@ -185,11 +211,38 @@ void ASPlayerCharacter::InputLook(const FInputActionValue& InValue)
 
 	switch (CurrentViewMode)
 	{
+	case EViewMode::TPSView:
 	case EViewMode::BackView:
 		AddControllerYawInput(LookVector.X);
 		AddControllerPitchInput(LookVector.Y);
 		break;
 	case EViewMode::QuarterView:
+	case EViewMode::None:
+	case EViewMode::End:
+	default:
+		break;
+	}
+}
+
+void ASPlayerCharacter::InputChangeView(const FInputActionValue& InValue)
+{
+	return;
+	switch (CurrentViewMode)
+	{
+	case EViewMode::BackView:
+		GetController()->SetControlRotation(GetActorRotation());
+		DestArmLength = 800.f;
+		DestArmRotation = FRotator(-45.f, 0.f, 0.f);
+		SetViewMode(EViewMode::QuarterView);
+
+		break;
+	case EViewMode::QuarterView:
+		GetController()->SetControlRotation(SpringArmComponent->GetRelativeRotation());
+		DestArmLength = 400.f;
+		DestArmRotation = FRotator::ZeroRotator;
+		SetViewMode(EViewMode::BackView);
+
+		break;
 	case EViewMode::None:
 	case EViewMode::End:
 	default:
