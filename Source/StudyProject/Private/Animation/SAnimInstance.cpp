@@ -10,6 +10,19 @@ USAnimInstance::USAnimInstance()
 
 }
 
+void USAnimInstance::NativeInitializeAnimation()
+{
+	Super::NativeInitializeAnimation();
+
+	CurrentSpeed = 0.f;
+
+	Velocity = FVector::ZeroVector;
+
+	bIsFalling = false;
+
+	bIsCrouching = false;
+}
+
 void USAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
@@ -20,7 +33,10 @@ void USAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		UCharacterMovementComponent* CharacterMovementComponent = OwnerCharacter->GetCharacterMovement();
 		if (IsValid(CharacterMovementComponent) == true)
 		{
-			CurrentSpeed = CharacterMovementComponent->GetLastUpdateVelocity().Size();
+			Velocity = CharacterMovementComponent->GetLastUpdateVelocity();
+			CurrentSpeed = Velocity.Size();
+			bIsFalling = CharacterMovementComponent->IsFalling();
+			bIsCrouching = CharacterMovementComponent->IsCrouching();
 		}
 	}
 }
