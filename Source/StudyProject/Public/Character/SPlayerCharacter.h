@@ -12,6 +12,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class USInputConfig;
 class UInputMappingContext;
+class ASWeaponActor;
 
 UENUM(BlueprintType)
 enum class EViewMode : uint8
@@ -55,6 +56,8 @@ private:
 	void InputMove(const FInputActionValue& InValue);
 	void InputLook(const FInputActionValue& InValue);
 	void InputChangeView(const FInputActionValue& InValue);
+	void InputQuickSlot01(const FInputActionValue& InValue);
+	void InputQuickSlot02(const FInputActionValue& InValue);
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
@@ -74,6 +77,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
 	float RightInputValue;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	TSubclassOf<ASWeaponActor> WeaponClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	TObjectPtr<ASWeaponActor> WeaponInstance;
 
 protected:
 

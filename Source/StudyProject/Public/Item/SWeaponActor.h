@@ -12,15 +12,12 @@ class STUDYPROJECT_API ASWeaponActor : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
 	ASWeaponActor();
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	USkeletalMeshComponent* GetMesh() const { return Mesh; }
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	TObjectPtr<USkeletalMeshComponent> Mesh;
 
 };

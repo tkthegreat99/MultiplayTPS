@@ -9,6 +9,7 @@
 #include "Input/SInputConfig.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Item/SWeaponActor.h"
 
 ASPlayerCharacter::ASPlayerCharacter()
 {
@@ -168,6 +169,8 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Look, ETriggerEvent::Triggered, this, &ThisClass::InputLook);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->ChangeView, ETriggerEvent::Started, this, &ThisClass::InputChangeView);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Jump, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot01, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot01);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot02, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot02);
 	}
 }
 
@@ -248,5 +251,27 @@ void ASPlayerCharacter::InputChangeView(const FInputActionValue& InValue)
 	case EViewMode::End:
 	default:
 		break;
+	}
+}
+
+void ASPlayerCharacter::InputQuickSlot01(const FInputActionValue& InValue)
+{
+	FName WeaponSocket(TEXT("WeaponSocket"));
+	if (GetMesh()->DoesSocketExist(WeaponSocket) == true && IsValid(WeaponInstance) == false)
+	{
+		WeaponInstance = GetWorld()->SpawnActor<ASWeaponActor>(WeaponClass, FVector::ZeroVector, FRotator::ZeroRotator);
+		if (IsValid(WeaponInstance) == true)
+		{
+			WeaponInstance->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+		}
+	}
+}
+
+void ASPlayerCharacter::InputQuickSlot02(const FInputActionValue& InValue)
+{
+	if (IsValid(WeaponInstance) == true)
+	{
+		WeaponInstance->Destroy();
+		WeaponInstance = nullptr;
 	}
 }
