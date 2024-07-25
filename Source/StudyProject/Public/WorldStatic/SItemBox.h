@@ -13,11 +13,22 @@ class STUDYPROJECT_API ASItemBox : public AActor
 	
 public:	
 	ASItemBox();
+	
+private:
+	UFUNCTION()
+	void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepHitResult);
 
-protected:
-	virtual void BeginPlay() override;
+	UFUNCTION()
+	void OnEffectFinish(class UParticleSystemComponent* ParticleSystem);
 
-public:	
-	virtual void Tick(float DeltaTime) override;
+private:
+	UPROPERTY(VisibleAnywhere, Category = ASItemBox)
+	TObjectPtr<class UBoxComponent> BoxComponent;
+
+	UPROPERTY(EditAnywhere, Category = ASItemBox)
+	TObjectPtr<class UStaticMeshComponent> StaticMeshComponent;
+
+	UPROPERTY(EditAnywhere, Category = ASItemBox)
+	TObjectPtr<class UParticleSystemComponent> ParticleSystemComponent;
 
 };
