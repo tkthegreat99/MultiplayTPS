@@ -12,7 +12,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class USInputConfig;
 class UInputMappingContext;
-class ASWeaponActor;
+//class ASWeaponActor;
 class UAnimMontage;
 
 UENUM(BlueprintType)
@@ -37,7 +37,7 @@ class STUDYPROJECT_API ASPlayerCharacter : public ASCharacter
 	
 public:
 
-	static int32 ShowAttackDebug;
+	//static int32 ShowAttackDebug;
 
 	ASPlayerCharacter();
 
@@ -53,11 +53,13 @@ public:
 
 	float GetRightInputValue() const { return RightInputValue; }
 
-	UFUNCTION()
-	void OnMeleeAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	//UFUNCTION()
+	//void OnMeleeAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
-	UFUNCTION()
-	void OnCheckHit();
+	//UFUNCTION()
+	//void OnCheckHit();
+
+	//virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 
 protected:
@@ -90,11 +92,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
 	float RightInputValue;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
-	TSubclassOf<ASWeaponActor> WeaponClass;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	//TSubclassOf<ASWeaponActor> WeaponClass;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
-	TObjectPtr<ASWeaponActor> WeaponInstance;
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	//TObjectPtr<ASWeaponActor> WeaponInstance;
 
 protected:
 
@@ -110,32 +112,32 @@ protected:
 
 	float ArmRotationChangeSpeed = 10.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
-	float MeleeAttackRange = 50.f;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
+	//float MeleeAttackRange = 50.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
-	float MeleeAttackRadius = 20.f;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
+	//float MeleeAttackRadius = 20.f;
 private:
 
-	void BeginCombo();
+	//void BeginCombo();
 
-	UFUNCTION()
-	void OnCheckAttackInput();
+	//UFUNCTION()
+	//void OnCheckAttackInput();
 
-	UFUNCTION()
-	void EndCombo(UAnimMontage* InMontage, bool bInterruped);
+	//UFUNCTION()
+	//void EndCombo(UAnimMontage* InMontage, bool bInterruped);
 
 private:
 
-	bool bIsNowAttacking = false;
+	//bool bIsNowAttacking = false;
 
-	FString AttackAnimMontageSectionName = FString(TEXT("Attack"));
+	//FString AttackAnimMontageSectionName = FString(TEXT("Attack"));
 
-	int32 MaxComboCount = 3;
+	//int32 MaxComboCount = 3;
 
-	int32 CurrentComboCount = 0;
+	//int32 CurrentComboCount = 0;
 
-	bool bIsAttackKeyPressed = false;
+	//bool bIsAttackKeyPressed = false;
 
-	FOnMontageEnded OnMeleeAttackMontageEndedDelegate;
+	//FOnMontageEnded OnMeleeAttackMontageEndedDelegate;
 };

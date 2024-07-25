@@ -10,9 +10,10 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Item/SWeaponActor.h"
-#include "Kismet/KismetSystemLibrary.h"
+//#include "Kismet/KismetSystemLibrary.h"
 #include "Animation/SAnimInstance.h"
 
+/*
 int32 ASPlayerCharacter::ShowAttackDebug = 0;
 
 FAutoConsoleVariableRef CVarShowAttackDebug(
@@ -21,6 +22,8 @@ FAutoConsoleVariableRef CVarShowAttackDebug(
 	TEXT(""),
 	ECVF_Cheat
 );
+
+*/
 
 ASPlayerCharacter::ASPlayerCharacter()
 {
@@ -49,11 +52,13 @@ void ASPlayerCharacter::BeginPlay()
 	}
 
 	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+	/*
 	if (IsValid(AnimInstance) == true)
 	{
 		AnimInstance->OnMontageEnded.AddDynamic(this, &ThisClass::OnMeleeAttackMontageEnded);
 		AnimInstance->OnCheckAttackInput.AddDynamic(this, &ThisClass::OnCheckAttackInput);
 	}
+	*/
 
 }
 
@@ -175,7 +180,7 @@ void ASPlayerCharacter::SetViewMode(EViewMode InViewMode)
 		break;
 	}
 }
-
+/*
 void ASPlayerCharacter::OnMeleeAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	if (Montage->GetName().Equals(TEXT("AM_Rifle_Fire_Melee"), ESearchCase::IgnoreCase) == true)
@@ -184,7 +189,8 @@ void ASPlayerCharacter::OnMeleeAttackMontageEnded(UAnimMontage* Montage, bool bI
 		bIsNowAttacking = false;
 	}
 }
-
+*/
+/*
 void ASPlayerCharacter::OnCheckHit()
 {
 	FHitResult HitResult;
@@ -200,14 +206,52 @@ void ASPlayerCharacter::OnCheckHit()
 		Params
 	);
 
-	if (true == bResult)
+#pragma region CollisionDebugDrawing
+	if (ShowAttackDebug == 1)
 	{
-		if (true == ::IsValid(HitResult.GetActor()))
+		FVector TraceVector = MeleeAttackRange * GetActorForwardVector();
+		FVector Center = GetActorLocation() + TraceVector + GetActorUpVector() * 40.f;
+		float HalfHeight = MeleeAttackRange * 0.5f + MeleeAttackRadius;
+		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVector).ToQuat();
+		FColor DrawColor = true == bResult ? FColor::Green : FColor::Red;
+		float DebugLifeTime = 5.f;
+
+		DrawDebugCapsule(
+			GetWorld(),
+			Center,
+			HalfHeight,
+			MeleeAttackRadius,
+			CapsuleRot,
+			DrawColor,
+			false,
+			DebugLifeTime
+		);
+
+		if (true == bResult)
 		{
-			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+			if (true == ::IsValid(HitResult.GetActor()))
+			{
+				UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+			}
 		}
 	}
+#pragma endregion
 }
+*/
+
+/*
+float ASPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	float FinalDamageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	if (ShowAttackDebug == 1)
+	{
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%s was taken damage: %.3f"), *GetName(), FinalDamageAmount));
+	}
+
+	return FinalDamageAmount;
+}
+*/
 
 void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -349,7 +393,7 @@ void ASPlayerCharacter::InputAttack(const FInputActionValue& InValue)
 		{
 			if (0 == CurrentComboCount)
 			{
-				BeginCombo();
+				BeginAttack();
 			}
 			else
 			{
@@ -360,6 +404,7 @@ void ASPlayerCharacter::InputAttack(const FInputActionValue& InValue)
 	}
 }
 
+/*
 void ASPlayerCharacter::BeginCombo()
 {
 	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
@@ -410,3 +455,4 @@ void ASPlayerCharacter::EndCombo(UAnimMontage* InMontage, bool bInterruped)
 		OnMeleeAttackMontageEndedDelegate.Unbind();
 	}
 }
+*/

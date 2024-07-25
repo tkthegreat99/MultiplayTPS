@@ -48,6 +48,9 @@ protected:
 	UFUNCTION()
 	void AnimNotify_CheckAttackInput();
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
+	uint8 bIsDead : 1;
+
 public:
 	FOnCheckHit OnCheckHit;
 	
