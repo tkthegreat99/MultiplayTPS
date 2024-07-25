@@ -6,6 +6,12 @@
 #include "Animation/AnimInstance.h"
 #include "SAnimInstance.generated.h"
 
+
+class UAnimMontage;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCheckHit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCheckAttackInput);
+
 /**
  * 
  */
@@ -21,6 +27,8 @@ public:
 
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
+	void PlayAnimMontage(UAnimMontage* InAnimMontage);
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SAnimInstance", meta = (AllowPrivateAccess))
 	float CurrentSpeed;
@@ -33,4 +41,16 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SAnimInstance", meta = (AllowPrivateAccess))
 	uint8 bIsCrouching : 1;
+
+	UFUNCTION()
+	void AnimNotify_CheckHit();
+
+	UFUNCTION()
+	void AnimNotify_CheckAttackInput();
+
+public:
+	FOnCheckHit OnCheckHit;
+	
+	FOnCheckAttackInput OnCheckAttackInput;
+
 };

@@ -10,6 +10,17 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Item/SWeaponActor.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Animation/SAnimInstance.h"
+
+int32 ASPlayerCharacter::ShowAttackDebug = 0;
+
+FAutoConsoleVariableRef CVarShowAttackDebug(
+	TEXT("StudyProject.ShowAttackDebug"),
+	ASPlayerCharacter::ShowAttackDebug,
+	TEXT(""),
+	ECVF_Cheat
+);
 
 ASPlayerCharacter::ASPlayerCharacter()
 {
@@ -35,6 +46,13 @@ void ASPlayerCharacter::BeginPlay()
 		{
 			Subsystem->AddMappingContext(PlayerCharacterInputMappingContext, 0);
 		}
+	}
+
+	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+	if (IsValid(AnimInstance) == true)
+	{
+		AnimInstance->OnMontageEnded.AddDynamic(this, &ThisClass::OnMeleeAttackMontageEnded);
+		AnimInstance->OnCheckAttackInput.AddDynamic(this, &ThisClass::OnCheckAttackInput);
 	}
 
 }
@@ -158,6 +176,39 @@ void ASPlayerCharacter::SetViewMode(EViewMode InViewMode)
 	}
 }
 
+void ASPlayerCharacter::OnMeleeAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage->GetName().Equals(TEXT("AM_Rifle_Fire_Melee"), ESearchCase::IgnoreCase) == true)
+	{
+		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+		bIsNowAttacking = false;
+	}
+}
+
+void ASPlayerCharacter::OnCheckHit()
+{
+	FHitResult HitResult;
+	FCollisionQueryParams Params(NAME_None, false, this);
+
+	bool bResult = GetWorld()->SweepSingleByChannel(
+		HitResult,
+		GetActorLocation(),
+		GetActorLocation() + MeleeAttackRange * GetActorForwardVector(),
+		FQuat::Identity,
+		ECC_GameTraceChannel2,
+		FCollisionShape::MakeSphere(MeleeAttackRadius),
+		Params
+	);
+
+	if (true == bResult)
+	{
+		if (true == ::IsValid(HitResult.GetActor()))
+		{
+			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+		}
+	}
+}
+
 void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -171,11 +222,17 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Jump, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot01, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot01);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot02, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot02);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Attack, ETriggerEvent::Started, this, &ThisClass::InputAttack);
 	}
 }
 
 void ASPlayerCharacter::InputMove(const FInputActionValue& InValue)
 {
+	if (GetCharacterMovement()->GetGroundMovementMode() == MOVE_None)
+	{
+		return;
+	}
+
 	FVector2D MovementVector = InValue.Get<FVector2D>();
 
 	switch (CurrentViewMode)
@@ -273,5 +330,83 @@ void ASPlayerCharacter::InputQuickSlot02(const FInputActionValue& InValue)
 	{
 		WeaponInstance->Destroy();
 		WeaponInstance = nullptr;
+	}
+}
+
+void ASPlayerCharacter::InputAttack(const FInputActionValue& InValue)
+{
+	if (GetCharacterMovement()->IsFalling() == true)
+	{
+		return;
+	}
+
+	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+	checkf(IsValid(AnimInstance) == true, TEXT("Invalid AnimInstance"));
+
+	if (IsValid(WeaponInstance) == true)
+	{
+		if (IsValid(WeaponInstance->GetMeleeAttackMontage()) == true)
+		{
+			if (0 == CurrentComboCount)
+			{
+				BeginCombo();
+			}
+			else
+			{
+				ensure(FMath::IsWithinInclusive<int32>(CurrentComboCount, 1, MaxComboCount));
+				bIsAttackKeyPressed = true;
+			}
+		}
+	}
+}
+
+void ASPlayerCharacter::BeginCombo()
+{
+	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+	checkf(IsValid(AnimInstance) == true, TEXT("Invalid AnimInstance"));
+	checkf(IsValid(WeaponInstance) == true, TEXT("Invalid WeaponInstance"));
+
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+	bIsNowAttacking = true;
+	AnimInstance->PlayAnimMontage(WeaponInstance->GetMeleeAttackMontage());
+
+	CurrentComboCount = 1;
+
+	if (OnMeleeAttackMontageEndedDelegate.IsBound() == false)
+	{
+		OnMeleeAttackMontageEndedDelegate.BindUObject(this, &ThisClass::EndCombo);
+		AnimInstance->Montage_SetEndDelegate(OnMeleeAttackMontageEndedDelegate, WeaponInstance->GetMeleeAttackMontage());
+	}
+}
+
+void ASPlayerCharacter::OnCheckAttackInput()
+{
+	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+	checkf(IsValid(AnimInstance) == true, TEXT("Invalid AnimInstance"));
+	checkf(IsValid(WeaponInstance) == true, TEXT("Invalid WeaponInstance"));
+
+	if (bIsAttackKeyPressed == true)
+	{
+		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, MaxComboCount);
+
+		FName NextSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnimMontageSectionName, CurrentComboCount);
+		AnimInstance->Montage_JumpToSection(NextSectionName, WeaponInstance->GetMeleeAttackMontage());
+		bIsAttackKeyPressed = false;
+	}
+}
+
+void ASPlayerCharacter::EndCombo(UAnimMontage* InMontage, bool bInterruped)
+{
+	checkf(IsValid(WeaponInstance) == true, TEXT("Invalid WeaponInstance"));
+
+	ensureMsgf(CurrentComboCount != 0, TEXT("CurrentComboCount == 0"));
+	CurrentComboCount = 0;
+	bIsAttackKeyPressed = false;
+	bIsNowAttacking = false;
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+
+	if (OnMeleeAttackMontageEndedDelegate.IsBound() == true)
+	{
+		OnMeleeAttackMontageEndedDelegate.Unbind();
 	}
 }

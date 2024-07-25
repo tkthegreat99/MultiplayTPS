@@ -13,7 +13,8 @@ ASCharacter::ASCharacter()
 	float CharacterRadius = 20.f;
 
 	GetCapsuleComponent()->InitCapsuleSize(CharacterRadius, CharacterHalfHeight);
-	
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("SCharacter"));
+
 	FVector PivotPosition(0.f, 0.f, -CharacterHalfHeight);
 	FRotator PivotRotatioin(0.f, -90.f, 0.f);
 	GetMesh()->SetRelativeLocationAndRotation(PivotPosition, PivotRotatioin);

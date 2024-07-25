@@ -35,6 +35,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInputAction> QuickSlot02;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInputAction> Attack;
+
 
 	
 };

@@ -40,3 +40,29 @@ void USAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		}
 	}
 }
+
+void USAnimInstance::PlayAnimMontage(UAnimMontage* InAnimMontage)
+{
+	checkf(IsValid(InAnimMontage) == true, TEXT("Invalid InAnimMontage"));
+
+	if (Montage_IsPlaying(InAnimMontage) == false)
+	{
+		Montage_Play(InAnimMontage);
+	}
+}
+
+void USAnimInstance::AnimNotify_CheckHit()
+{
+	if (OnCheckHit.IsBound() == true)
+	{
+		OnCheckHit.Broadcast();
+	}
+}
+
+void USAnimInstance::AnimNotify_CheckAttackInput()
+{
+	if (OnCheckAttackInput.IsBound() == true)
+	{
+		OnCheckAttackInput.Broadcast();
+	}
+}
