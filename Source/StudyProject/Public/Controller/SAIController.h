@@ -6,6 +6,9 @@
 #include "AIController.h"
 #include "SAIController.generated.h"
 
+class UBlackboardData;
+class UBehaviorTree;
+
 /**
  * 
  */
@@ -22,14 +25,27 @@ protected:
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-private:
-	void OnPatrolTimerElapsed();
+	void BeginAI(APawn* InPawn);
+
+	void EndAI();
 
 public:
-	FTimerHandle PatrolTimerHandle = FTimerHandle();
-
-	static const float PatrolRepeatInterval;
-
 	static const float PatrolRadius;
+
+	static int32 ShowAIDebug;
+
+	static const FName StartPatrolPositionKey;
+
+	static const FName EndPatrolPositionKey;
+
+	static const FName TargetActorKey;
+
+private:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Meta = (AllowPrivateAccess))
+	TObjectPtr<UBlackboardData> BlackboardDataAsset;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Meta = (AllowPrivateAccess))
+	TObjectPtr<UBehaviorTree> BehaviorTree;
+
 
 };
