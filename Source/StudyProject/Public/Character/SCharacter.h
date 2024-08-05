@@ -7,6 +7,7 @@
 #include "SCharacter.generated.h"
 
 class ASWeaponActor;
+class USpringArmComponent;
 
 UCLASS()
 class STUDYPROJECT_API ASCharacter : public ACharacter
@@ -65,6 +66,7 @@ public:
 	static int32 ShowAttackDebug;
 
 protected:
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	TSubclassOf<ASWeaponActor> WeaponClass;
 

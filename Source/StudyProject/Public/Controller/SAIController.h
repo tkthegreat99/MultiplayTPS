@@ -16,6 +16,8 @@ UCLASS()
 class STUDYPROJECT_API ASAIController : public AAIController
 {
 	GENERATED_BODY()
+
+	friend class ASNonPlayerCharacter;
 	
 public:
 	ASAIController();

@@ -14,6 +14,7 @@ class USInputConfig;
 class UInputMappingContext;
 //class ASWeaponActor;
 class UAnimMontage;
+class UParticleSystemComponent;
 
 UENUM(BlueprintType)
 enum class EViewMode : uint8
@@ -35,6 +36,19 @@ class STUDYPROJECT_API ASPlayerCharacter : public ASCharacter
 {
 	GENERATED_BODY()
 	
+public:
+
+	UParticleSystemComponent* GetParticleSystem() const { return ParticleSystemComponent; }
+
+	int32 GetMaxKillCount() const { return MaxKillCount; }
+
+	void SetMaxKillCount(int32 InMaxKillCount) { MaxKillCount = InMaxKillCount; }
+
+	int32 GetCurrentKillCount() const { return CurrentKillCount; }
+
+	void AddCurrentKillCount(int32 InCurrentKillCount);
+
+
 public:
 
 	//static int32 ShowAttackDebug;
@@ -140,4 +154,13 @@ private:
 	//bool bIsAttackKeyPressed = false;
 
 	//FOnMontageEnded OnMeleeAttackMontageEndedDelegate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
+	TObjectPtr<UParticleSystemComponent> ParticleSystemComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess = true))
+	int32 CurrentKillCount = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess = true))
+	int32 MaxKillCount = 99;
 };

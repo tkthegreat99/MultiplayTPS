@@ -39,6 +39,7 @@ ASCharacter::ASCharacter()
 	GetCharacterMovement()->AirControl = 0.35f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 
+
 	bIsDead = false;
 }
 

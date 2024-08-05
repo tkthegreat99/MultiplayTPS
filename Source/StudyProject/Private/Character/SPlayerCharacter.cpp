@@ -12,6 +12,8 @@
 #include "Item/SWeaponActor.h"
 //#include "Kismet/KismetSystemLibrary.h"
 #include "Animation/SAnimInstance.h"
+#include "Particles/ParticleSystemComponent.h"
+
 
 /*
 int32 ASPlayerCharacter::ShowAttackDebug = 0;
@@ -25,6 +27,12 @@ FAutoConsoleVariableRef CVarShowAttackDebug(
 
 */
 
+void ASPlayerCharacter::AddCurrentKillCount(int32 InCurrentKillCount)
+{
+	CurrentKillCount = FMath::Clamp(CurrentKillCount + InCurrentKillCount, 0.f, MaxKillCount);
+	ParticleSystemComponent->Activate(true);
+}
+
 ASPlayerCharacter::ASPlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -32,9 +40,14 @@ ASPlayerCharacter::ASPlayerCharacter()
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
 	SpringArmComponent->SetupAttachment(RootComponent);
 	SpringArmComponent->TargetArmLength = 400.f;
+	SpringArmComponent->bDoCollisionTest = false;
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(SpringArmComponent);
+
+	ParticleSystemComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleSystemComponent"));
+	ParticleSystemComponent->SetupAttachment(GetRootComponent());
+	ParticleSystemComponent->SetAutoActivate(false);
 }
 
 void ASPlayerCharacter::BeginPlay()
@@ -272,7 +285,7 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 void ASPlayerCharacter::InputMove(const FInputActionValue& InValue)
 {
-	if (GetCharacterMovement()->GetGroundMovementMode() == MOVE_None)
+	if (GetCharacterMovement()->GetGroundMovementMode() == MOVE_None || bIsDead == true)
 	{
 		return;
 	}
@@ -312,6 +325,11 @@ void ASPlayerCharacter::InputMove(const FInputActionValue& InValue)
 
 void ASPlayerCharacter::InputLook(const FInputActionValue& InValue)
 {
+	if (GetCharacterMovement()->GetGroundMovementMode() == MOVE_None || bIsDead == true)
+	{
+		return;
+	}
+
 	FVector2D LookVector = InValue.Get<FVector2D>();
 
 	switch (CurrentViewMode)
