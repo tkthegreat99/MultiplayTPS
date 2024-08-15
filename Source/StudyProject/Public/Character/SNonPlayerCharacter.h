@@ -9,6 +9,7 @@
 
 
 class UAnimMontage;
+class USWidgetComponent;
 
 /**
  * 
@@ -28,6 +29,10 @@ public:
 
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
+	virtual void Tick(float DeltaSeconds) override;
+
+	virtual void SetWidget(UStudyWidget* InStudyWidget) override;
+
 protected:
 	virtual void BeginAttack() override;
 
@@ -36,4 +41,7 @@ protected:
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	TObjectPtr<UAnimMontage> MeleeAttackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	TObjectPtr<USWidgetComponent> WidgetComponent;
 };

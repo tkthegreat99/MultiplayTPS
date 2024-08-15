@@ -16,5 +16,7 @@ class STUDYPROJECT_API ASGameMode : public AGameModeBase
 
 public:
 	ASGameMode();
+
+	virtual void PostLogin(APlayerController* NewPlayer) override;
 	
 };

@@ -4,6 +4,7 @@
 #include "Animation/SAnimInstance.h"
 #include "Character/SPlayerCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Component/SStatComponent.h"
 
 USAnimInstance::USAnimInstance()
 {
@@ -38,7 +39,7 @@ void USAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			CurrentSpeed = Velocity.Size();
 			bIsFalling = CharacterMovementComponent->IsFalling();
 			bIsCrouching = CharacterMovementComponent->IsCrouching();
-			bIsDead = OwnerCharacter->IsDead();
+			bIsDead = OwnerCharacter->GetStatComponent()->GetCurrentHP() <= KINDA_SMALL_NUMBER;
 		}
 	}
 }

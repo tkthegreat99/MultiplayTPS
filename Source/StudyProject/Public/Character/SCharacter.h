@@ -8,6 +8,8 @@
 
 class ASWeaponActor;
 class USpringArmComponent;
+class USStatComponent;
+class UStudyWidget;
 
 UCLASS()
 class STUDYPROJECT_API ASCharacter : public ACharacter
@@ -17,6 +19,8 @@ class STUDYPROJECT_API ASCharacter : public ACharacter
 	friend class UAN_CheckHit;
 
 public:
+
+	/*
 
 	float GetMaxHP() const { return MaxHP; }
 
@@ -28,7 +32,16 @@ public:
 
 	bool IsDead() const { return bIsDead; }
 
+	*/
+
+	USStatComponent* GetStatComponent() const { return StatComponent; }
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	virtual void SetWidget(UStudyWidget* InStudyWidget) {}
 protected:
+
+	/*
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
 	float MaxHP = 200.f;
 
@@ -37,6 +50,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
 	uint8 bIsDead : 1;
+	*/
+
+
 
 
 public:
@@ -54,13 +70,16 @@ protected:
 	UFUNCTION()
 	void OnCheckHit();
 
-	virtual void BeginAttack(); // BeginCombo()에서 이름 변경.
+	virtual void BeginAttack(); 
 
 	UFUNCTION()
 	void OnCheckAttackInput();
 
 	UFUNCTION()
 	virtual void EndAttack(UAnimMontage* InMontage, bool bInterruped);
+
+	UFUNCTION()
+	void OnCharacterDeath();
 
 public:
 	static int32 ShowAttackDebug;
@@ -90,4 +109,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
 	float MeleeAttackRadius = 20.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
+	TObjectPtr<USStatComponent> StatComponent;
 };

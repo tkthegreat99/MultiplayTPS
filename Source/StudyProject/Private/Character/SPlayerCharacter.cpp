@@ -10,28 +10,12 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Item/SWeaponActor.h"
-//#include "Kismet/KismetSystemLibrary.h"
 #include "Animation/SAnimInstance.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Component/SStatComponent.h"
 
 
-/*
-int32 ASPlayerCharacter::ShowAttackDebug = 0;
 
-FAutoConsoleVariableRef CVarShowAttackDebug(
-	TEXT("StudyProject.ShowAttackDebug"),
-	ASPlayerCharacter::ShowAttackDebug,
-	TEXT(""),
-	ECVF_Cheat
-);
-
-*/
-
-void ASPlayerCharacter::AddCurrentKillCount(int32 InCurrentKillCount)
-{
-	CurrentKillCount = FMath::Clamp(CurrentKillCount + InCurrentKillCount, 0.f, MaxKillCount);
-	ParticleSystemComponent->Activate(true);
-}
 
 ASPlayerCharacter::ASPlayerCharacter()
 {
@@ -65,13 +49,7 @@ void ASPlayerCharacter::BeginPlay()
 	}
 
 	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
-	/*
-	if (IsValid(AnimInstance) == true)
-	{
-		AnimInstance->OnMontageEnded.AddDynamic(this, &ThisClass::OnMeleeAttackMontageEnded);
-		AnimInstance->OnCheckAttackInput.AddDynamic(this, &ThisClass::OnCheckAttackInput);
-	}
-	*/
+	
 
 }
 
@@ -193,78 +171,6 @@ void ASPlayerCharacter::SetViewMode(EViewMode InViewMode)
 		break;
 	}
 }
-/*
-void ASPlayerCharacter::OnMeleeAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-	if (Montage->GetName().Equals(TEXT("AM_Rifle_Fire_Melee"), ESearchCase::IgnoreCase) == true)
-	{
-		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
-		bIsNowAttacking = false;
-	}
-}
-*/
-/*
-void ASPlayerCharacter::OnCheckHit()
-{
-	FHitResult HitResult;
-	FCollisionQueryParams Params(NAME_None, false, this);
-
-	bool bResult = GetWorld()->SweepSingleByChannel(
-		HitResult,
-		GetActorLocation(),
-		GetActorLocation() + MeleeAttackRange * GetActorForwardVector(),
-		FQuat::Identity,
-		ECC_GameTraceChannel2,
-		FCollisionShape::MakeSphere(MeleeAttackRadius),
-		Params
-	);
-
-#pragma region CollisionDebugDrawing
-	if (ShowAttackDebug == 1)
-	{
-		FVector TraceVector = MeleeAttackRange * GetActorForwardVector();
-		FVector Center = GetActorLocation() + TraceVector + GetActorUpVector() * 40.f;
-		float HalfHeight = MeleeAttackRange * 0.5f + MeleeAttackRadius;
-		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVector).ToQuat();
-		FColor DrawColor = true == bResult ? FColor::Green : FColor::Red;
-		float DebugLifeTime = 5.f;
-
-		DrawDebugCapsule(
-			GetWorld(),
-			Center,
-			HalfHeight,
-			MeleeAttackRadius,
-			CapsuleRot,
-			DrawColor,
-			false,
-			DebugLifeTime
-		);
-
-		if (true == bResult)
-		{
-			if (true == ::IsValid(HitResult.GetActor()))
-			{
-				UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
-			}
-		}
-	}
-#pragma endregion
-}
-*/
-
-/*
-float ASPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
-{
-	float FinalDamageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-
-	if (ShowAttackDebug == 1)
-	{
-		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%s was taken damage: %.3f"), *GetName(), FinalDamageAmount));
-	}
-
-	return FinalDamageAmount;
-}
-*/
 
 void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -285,7 +191,7 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 void ASPlayerCharacter::InputMove(const FInputActionValue& InValue)
 {
-	if (GetCharacterMovement()->GetGroundMovementMode() == MOVE_None || bIsDead == true)
+	if (GetCharacterMovement()->GetGroundMovementMode() == MOVE_None || StatComponent->GetCurrentHP() <= KINDA_SMALL_NUMBER)
 	{
 		return;
 	}
@@ -325,7 +231,7 @@ void ASPlayerCharacter::InputMove(const FInputActionValue& InValue)
 
 void ASPlayerCharacter::InputLook(const FInputActionValue& InValue)
 {
-	if (GetCharacterMovement()->GetGroundMovementMode() == MOVE_None || bIsDead == true)
+	if (GetCharacterMovement()->GetGroundMovementMode() == MOVE_None || StatComponent->GetCurrentHP() <= KINDA_SMALL_NUMBER)
 	{
 		return;
 	}
@@ -422,55 +328,3 @@ void ASPlayerCharacter::InputAttack(const FInputActionValue& InValue)
 	}
 }
 
-/*
-void ASPlayerCharacter::BeginCombo()
-{
-	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
-	checkf(IsValid(AnimInstance) == true, TEXT("Invalid AnimInstance"));
-	checkf(IsValid(WeaponInstance) == true, TEXT("Invalid WeaponInstance"));
-
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
-	bIsNowAttacking = true;
-	AnimInstance->PlayAnimMontage(WeaponInstance->GetMeleeAttackMontage());
-
-	CurrentComboCount = 1;
-
-	if (OnMeleeAttackMontageEndedDelegate.IsBound() == false)
-	{
-		OnMeleeAttackMontageEndedDelegate.BindUObject(this, &ThisClass::EndCombo);
-		AnimInstance->Montage_SetEndDelegate(OnMeleeAttackMontageEndedDelegate, WeaponInstance->GetMeleeAttackMontage());
-	}
-}
-
-void ASPlayerCharacter::OnCheckAttackInput()
-{
-	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
-	checkf(IsValid(AnimInstance) == true, TEXT("Invalid AnimInstance"));
-	checkf(IsValid(WeaponInstance) == true, TEXT("Invalid WeaponInstance"));
-
-	if (bIsAttackKeyPressed == true)
-	{
-		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, MaxComboCount);
-
-		FName NextSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnimMontageSectionName, CurrentComboCount);
-		AnimInstance->Montage_JumpToSection(NextSectionName, WeaponInstance->GetMeleeAttackMontage());
-		bIsAttackKeyPressed = false;
-	}
-}
-
-void ASPlayerCharacter::EndCombo(UAnimMontage* InMontage, bool bInterruped)
-{
-	checkf(IsValid(WeaponInstance) == true, TEXT("Invalid WeaponInstance"));
-
-	ensureMsgf(CurrentComboCount != 0, TEXT("CurrentComboCount == 0"));
-	CurrentComboCount = 0;
-	bIsAttackKeyPressed = false;
-	bIsNowAttacking = false;
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
-
-	if (OnMeleeAttackMontageEndedDelegate.IsBound() == true)
-	{
-		OnMeleeAttackMontageEndedDelegate.Unbind();
-	}
-}
-*/

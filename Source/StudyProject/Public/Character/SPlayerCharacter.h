@@ -40,6 +40,7 @@ public:
 
 	UParticleSystemComponent* GetParticleSystem() const { return ParticleSystemComponent; }
 
+	/*
 	int32 GetMaxKillCount() const { return MaxKillCount; }
 
 	void SetMaxKillCount(int32 InMaxKillCount) { MaxKillCount = InMaxKillCount; }
@@ -47,7 +48,7 @@ public:
 	int32 GetCurrentKillCount() const { return CurrentKillCount; }
 
 	void AddCurrentKillCount(int32 InCurrentKillCount);
-
+	*/
 
 public:
 
@@ -158,9 +159,13 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
 	TObjectPtr<UParticleSystemComponent> ParticleSystemComponent;
 
+	/*
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess = true))
 	int32 CurrentKillCount = 0;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess = true))
 	int32 MaxKillCount = 99;
+
+	*/
 };
