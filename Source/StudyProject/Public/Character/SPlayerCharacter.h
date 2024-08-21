@@ -87,6 +87,7 @@ private:
 	void InputQuickSlot01(const FInputActionValue& InValue);
 	void InputQuickSlot02(const FInputActionValue& InValue);
 	void InputAttack(const FInputActionValue& InValue);
+	void InputMenu(const FInputActionValue& InValue);
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))

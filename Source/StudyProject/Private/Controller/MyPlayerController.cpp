@@ -6,10 +6,13 @@
 #include "Game/SPlayerState.h"
 #include "Component/SStatComponent.h"
 #include "Character/SCharacter.h"
+#include "Blueprint/UserWidget.h"
 
 void AMyPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
+    
 
     if (IsValid(HUDWidgetClass) == true)
     {
@@ -31,6 +34,8 @@ void AMyPlayerController::BeginPlay()
                 if (IsValid(StatComponent) == true)
                 {
                     HUDWidget->BindStatComponent(StatComponent);
+                    FInputModeGameOnly Mode;
+                    SetInputMode(Mode);
                 }
             }
         }

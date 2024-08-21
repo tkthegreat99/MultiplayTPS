@@ -186,6 +186,7 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot01, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot01);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot02, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot02);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Attack, ETriggerEvent::Started, this, &ThisClass::InputAttack);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Menu, ETriggerEvent::Started, this, &ThisClass::InputMenu);
 	}
 }
 
@@ -326,5 +327,10 @@ void ASPlayerCharacter::InputAttack(const FInputActionValue& InValue)
 			}
 		}
 	}
+}
+
+void ASPlayerCharacter::InputMenu(const FInputActionValue& InValue)
+{
+	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("ASPlayerCharacter::InputMenu() has been called.")));
 }
 
