@@ -20,10 +20,21 @@ public:
 
 		virtual void BeginPlay() override;
 
+		void ToggleInGameMenu();
+
+
 private:
 	UPROPERTY();
 	TObjectPtr<USHUD> HUDWidget;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta = (AllowPrivateAccess));
 	TSubclassOf<USHUD> HUDWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ASPlayerController, Meta = (AllowPrivateAccess))
+	TSubclassOf<UUserWidget> InGameMenuClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = ASPlayerController, Meta = (AllowPrivateAccess))
+	TObjectPtr<UUserWidget> InGameMenuInstance;
+
+	bool bIsInGameMenuOn = false;
 };

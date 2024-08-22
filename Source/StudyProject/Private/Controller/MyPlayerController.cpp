@@ -7,6 +7,7 @@
 #include "Component/SStatComponent.h"
 #include "Character/SCharacter.h"
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/UserWidget.h"
 
 void AMyPlayerController::BeginPlay()
 {
@@ -40,4 +41,45 @@ void AMyPlayerController::BeginPlay()
             }
         }
     }
+
+    if (IsValid(InGameMenuClass) == true)
+    {
+        InGameMenuInstance = CreateWidget<UUserWidget>(this, InGameMenuClass);
+        if (IsValid(InGameMenuInstance) == true)
+        {
+            InGameMenuInstance->AddToViewport(3); // »óÀ§¿¡ ¶ç¿ò.
+
+            InGameMenuInstance->SetVisibility(ESlateVisibility::Collapsed);
+        }
+    }
+}
+
+void AMyPlayerController::ToggleInGameMenu()
+{
+    checkf(IsValid(InGameMenuInstance) == true, TEXT("Invalid InGameMenuInstance"));
+
+    if (false == bIsInGameMenuOn)
+    {
+        InGameMenuInstance->SetVisibility(ESlateVisibility::Visible);
+
+        FInputModeUIOnly Mode;
+        Mode.SetWidgetToFocus(InGameMenuInstance->GetCachedWidget());
+        SetInputMode(Mode);
+
+        SetPause(true); 
+     
+        bShowMouseCursor = true;
+    }
+    else
+    {
+        InGameMenuInstance->SetVisibility(ESlateVisibility::Collapsed);
+
+        FInputModeGameOnly InputModeGameOnly;
+        SetInputMode(InputModeGameOnly);
+
+        SetPause(false);
+        bShowMouseCursor = false;
+    }
+
+    bIsInGameMenuOn = !bIsInGameMenuOn;
 }

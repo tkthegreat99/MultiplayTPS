@@ -5,6 +5,7 @@
 #include "Components/Button.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "Controller/MyPlayerController.h"
 
 void UUW_InGameMenu::NativeConstruct()
 {
@@ -15,6 +16,11 @@ void UUW_InGameMenu::NativeConstruct()
 
 void UUW_InGameMenu::OnResumeButtonClicked()
 {
+	AMyPlayerController* PlayerController = Cast<AMyPlayerController>(GetOwningPlayer());
+	if (true == ::IsValid(PlayerController))
+	{
+		PlayerController->ToggleInGameMenu();
+	}
 }
 
 void UUW_InGameMenu::OnReturnTitleButtonClicked()

@@ -13,6 +13,8 @@
 #include "Animation/SAnimInstance.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Component/SStatComponent.h"
+#include "Controller/MyPlayerController.h"
+
 
 
 
@@ -331,6 +333,10 @@ void ASPlayerCharacter::InputAttack(const FInputActionValue& InValue)
 
 void ASPlayerCharacter::InputMenu(const FInputActionValue& InValue)
 {
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("ASPlayerCharacter::InputMenu() has been called.")));
+	AMyPlayerController* PlayerController = GetController<AMyPlayerController>();
+	if (true == ::IsValid(PlayerController))
+	{
+		PlayerController->ToggleInGameMenu();
+	}
 }
 
