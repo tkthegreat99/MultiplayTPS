@@ -15,6 +15,7 @@ class UInputMappingContext;
 //class ASWeaponActor;
 class UAnimMontage;
 class UParticleSystemComponent;
+struct FStreamableHandle;
 
 UENUM(BlueprintType)
 enum class EViewMode : uint8
@@ -127,6 +128,10 @@ protected:
 	FRotator DestArmRotation = FRotator::ZeroRotator;
 
 	float ArmRotationChangeSpeed = 10.f;
+
+	FSoftObjectPath CurrentPlayerCharacterMeshMaterialPath = FSoftObjectPath();
+
+	TSharedPtr<FStreamableHandle> AssetStreamableHandle = nullptr;
 
 	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
 	//float MeleeAttackRange = 50.f;

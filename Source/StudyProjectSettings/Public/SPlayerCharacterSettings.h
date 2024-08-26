@@ -9,9 +9,12 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(config = PlayerCharacterMeshMaterialPaths)
 class STUDYPROJECTSETTINGS_API USPlayerCharacterSettings : public UObject
 {
 	GENERATED_BODY()
-	
+
+public:
+	UPROPERTY(config)                    
+	TArray<FSoftObjectPath> PlayerCharacterMeshMaterialPaths;
 };

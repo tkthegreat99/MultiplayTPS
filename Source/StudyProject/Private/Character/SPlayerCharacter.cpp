@@ -14,7 +14,11 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Component/SStatComponent.h"
 #include "Controller/MyPlayerController.h"
-
+/*
+#include "SPlayerCharacterSettings.h"
+#include "Engine/AssetManager.h"
+#include "Engine/StreamableManager.h"
+*/
 
 
 
@@ -34,6 +38,17 @@ ASPlayerCharacter::ASPlayerCharacter()
 	ParticleSystemComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleSystemComponent"));
 	ParticleSystemComponent->SetupAttachment(GetRootComponent());
 	ParticleSystemComponent->SetAutoActivate(false);
+
+	/*
+	const USPlayerCharacterSettings* CDO = GetDefault<USPlayerCharacterSettings>();
+	if (0 < CDO->PlayerCharacterMeshMaterialPaths.Num())
+	{
+		for (FSoftObjectPath PlayerCharacterMeshPath : CDO->PlayerCharacterMeshMaterialPaths)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Path: %s"), *(PlayerCharacterMeshPath.ToString()));
+		}
+	}
+	*/
 }
 
 void ASPlayerCharacter::BeginPlay()
@@ -52,7 +67,23 @@ void ASPlayerCharacter::BeginPlay()
 
 	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
 	
-
+	/*
+	const USPlayerCharacterSettings* CDO = GetDefault<USPlayerCharacterSettings>();
+	int32 RandIndex = FMath::RandRange(0, CDO->PlayerCharacterMeshMaterialPaths.Num() - 1);
+	CurrentPlayerCharacterMeshMaterialPath = CDO->PlayerCharacterMeshMaterialPaths[RandIndex];
+	AssetStreamableHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(
+		CurrentPlayerCharacterMeshMaterialPath,
+		FStreamableDelegate::CreateLambda([this]() -> void
+	{
+		AssetStreamableHandle->ReleaseHandle();
+		TSoftObjectPtr<UMaterial> LoadedMaterialInstanceAsset(CurrentPlayerCharacterMeshMaterialPath);
+		if (LoadedMaterialInstanceAsset.IsValid() == true)
+		{
+			//GetMesh()->SetMaterial(0, LoadedMaterialInstanceAsset.Get());
+		}
+	})
+	);
+	*/
 }
 
 void ASPlayerCharacter::PossessedBy(AController* NewController)
@@ -292,6 +323,18 @@ void ASPlayerCharacter::InputQuickSlot01(const FInputActionValue& InValue)
 		{
 			WeaponInstance->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
 		}
+
+		TSubclassOf<UAnimInstance> RifleCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
+		if (IsValid(RifleCharacterAnimLayer) == true)
+		{
+			GetMesh()->LinkAnimClassLayers(RifleCharacterAnimLayer);
+		}
+
+		USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetEquipAnimMontage()))
+		{
+			AnimInstance->Montage_Play(WeaponInstance->GetEquipAnimMontage());
+		}
 	}
 }
 
@@ -299,6 +342,18 @@ void ASPlayerCharacter::InputQuickSlot02(const FInputActionValue& InValue)
 {
 	if (IsValid(WeaponInstance) == true)
 	{
+		TSubclassOf<UAnimInstance> UnarmedCharacterAnimLayer = WeaponInstance->GetUnarmedCharacterAnimLayer();
+		if (IsValid(UnarmedCharacterAnimLayer) == true)
+		{
+			GetMesh()->LinkAnimClassLayers(UnarmedCharacterAnimLayer);
+		}
+
+		USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetUnequipAnimMontage()))
+		{
+			AnimInstance->Montage_Play(WeaponInstance->GetUnequipAnimMontage());
+		}
+
 		WeaponInstance->Destroy();
 		WeaponInstance = nullptr;
 	}
