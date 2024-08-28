@@ -62,6 +62,8 @@ public:
 
 	bool GetCurrentWeaponState() const { return bHasWeapon;  }
 
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	
@@ -139,6 +141,16 @@ protected:
 
 	bool bHasWeapon = false;
 
+	float TargetRagDollBlendWeight = 0.f;
+
+	float CurrentRagDollBlendWeight = 0.f;
+
+	bool bIsNowRagdollBlending = false;
+
+	FTimerHandle HittedRagdollRestoreTimer;
+
+	FTimerDelegate HittedRagdollRestoreTimerDelegate;
+
 private:
 	void TryFire();
 
@@ -149,6 +161,7 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
 	TObjectPtr<UParticleSystemComponent> ParticleSystemComponent;
 
-	
+	UFUNCTION()
+	void OnHittedRagdollRestoreTimerElapsed();
 
 };

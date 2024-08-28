@@ -101,6 +101,27 @@ void ASPlayerCharacter::Tick(float DeltaSeconds)
 		CurrentAimYaw = ControlRotation.Yaw;
 	}
 
+	if (true == bIsNowRagdollBlending)
+	{
+		CurrentRagDollBlendWeight = FMath::FInterpTo(CurrentRagDollBlendWeight, TargetRagDollBlendWeight, DeltaSeconds, 10.f);
+
+		FName PivotBoneName = FName(TEXT("spine_01"));
+		GetMesh()->SetAllBodiesBelowPhysicsBlendWeight(PivotBoneName, CurrentRagDollBlendWeight);
+
+		if (CurrentRagDollBlendWeight - TargetRagDollBlendWeight < KINDA_SMALL_NUMBER)
+		{
+			GetMesh()->SetAllBodiesBelowSimulatePhysics(PivotBoneName, false);
+			bIsNowRagdollBlending = false;
+		}
+
+		if (true == ::IsValid(GetStatComponent()) && GetStatComponent()->GetCurrentHP() < KINDA_SMALL_NUMBER)
+		{
+			GetMesh()->SetAllBodiesBelowPhysicsBlendWeight(FName(TEXT("root")), 1.f);
+			GetMesh()->SetSimulatePhysics(true);
+			bIsNowRagdollBlending = false;
+		}
+	}
+
 	return;
 
 	switch (CurrentViewMode)
@@ -209,6 +230,33 @@ void ASPlayerCharacter::SetViewMode(EViewMode InViewMode)
 	default:
 		break;
 	}
+}
+
+float ASPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	float FinalDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	if (IsValid(GetStatComponent()) == false)
+	{
+		return FinalDamage;
+	}
+
+	if (GetStatComponent()->GetCurrentHP() < KINDA_SMALL_NUMBER)
+	{
+		GetMesh()->SetSimulatePhysics(true);
+	}
+
+	else
+	{
+		FName PivotBoneName = FName(TEXT("spine_01"));
+		GetMesh()->SetAllBodiesBelowSimulatePhysics(PivotBoneName, true);
+		TargetRagDollBlendWeight = 1.f;
+
+		HittedRagdollRestoreTimerDelegate.BindUObject(this, &ThisClass::OnHittedRagdollRestoreTimerElapsed);
+		GetWorld()->GetTimerManager().SetTimer(HittedRagdollRestoreTimer, HittedRagdollRestoreTimerDelegate, 1.f, false);
+	}
+
+	return FinalDamage;
 }
 
 void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -512,7 +560,17 @@ void ASPlayerCharacter::TryFire()
 			if (IsValid(HittedCharacter) == true)
 			{
 				FDamageEvent DamageEvent;
-				HittedCharacter->TakeDamage(10.f, DamageEvent, GetController(), this);
+
+				FString BoneNameString = HitResult.BoneName.ToString();
+
+				if (true == BoneNameString.Equals(FString(TEXT("HEAD")), ESearchCase::IgnoreCase))
+				{
+					HittedCharacter->TakeDamage(100.f, DamageEvent, GetController(), this);
+				}
+				else
+				{
+					HittedCharacter->TakeDamage(10.f, DamageEvent, GetController(), this);
+				}
 			}
 		}	
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -529,5 +587,13 @@ void ASPlayerCharacter::TryFire()
 		}
 	}
 
+}
+
+void ASPlayerCharacter::OnHittedRagdollRestoreTimerElapsed()
+{
+	FName PivotBoneName = FName(TEXT("spine_01"));
+	TargetRagDollBlendWeight = 0.f;
+	CurrentRagDollBlendWeight = 1.f;
+	bIsNowRagdollBlending = true;
 }
 
