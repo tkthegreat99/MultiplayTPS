@@ -14,6 +14,8 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Component/SStatComponent.h"
 #include "Controller/MyPlayerController.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/DamageEvents.h"
 /*
 #include "SPlayerCharacterSettings.h"
 #include "Engine/AssetManager.h"
@@ -25,7 +27,7 @@
 
 ASPlayerCharacter::ASPlayerCharacter()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
 	SpringArmComponent->SetupAttachment(RootComponent);
@@ -34,21 +36,13 @@ ASPlayerCharacter::ASPlayerCharacter()
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(SpringArmComponent);
+	CameraComponent->SetRelativeLocation(FVector(140.f, 70.f, 60.f));
 
 	ParticleSystemComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleSystemComponent"));
 	ParticleSystemComponent->SetupAttachment(GetRootComponent());
 	ParticleSystemComponent->SetAutoActivate(false);
 
-	/*
-	const USPlayerCharacterSettings* CDO = GetDefault<USPlayerCharacterSettings>();
-	if (0 < CDO->PlayerCharacterMeshMaterialPaths.Num())
-	{
-		for (FSoftObjectPath PlayerCharacterMeshPath : CDO->PlayerCharacterMeshMaterialPaths)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Path: %s"), *(PlayerCharacterMeshPath.ToString()));
-		}
-	}
-	*/
+	TimeBetweenFire = 60.f / FirePerMinute;
 }
 
 void ASPlayerCharacter::BeginPlay()
@@ -96,6 +90,18 @@ void ASPlayerCharacter::PossessedBy(AController* NewController)
 void ASPlayerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	CurrentFOV = FMath::FInterpTo(CurrentFOV, TargetFOV, DeltaSeconds, 35.f);
+	CameraComponent->SetFieldOfView(CurrentFOV);
+
+	if (IsValid(GetController()) == true)
+	{
+		FRotator ControlRotation = GetController()->GetControlRotation();
+		CurrentAimPitch = ControlRotation.Pitch;
+		CurrentAimYaw = ControlRotation.Yaw;
+	}
+
+	return;
 
 	switch (CurrentViewMode)
 	{
@@ -220,6 +226,11 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot02, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot02);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Attack, ETriggerEvent::Started, this, &ThisClass::InputAttack);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Menu, ETriggerEvent::Started, this, &ThisClass::InputMenu);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->IronSight, ETriggerEvent::Started, this, &ThisClass::StartIronSight);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->IronSight, ETriggerEvent::Completed, this, &ThisClass::EndIronSight);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Trigger, ETriggerEvent::Started, this, &ThisClass::ToggleTrigger);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Attack, ETriggerEvent::Started, this, &ThisClass::StartFire);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Attack, ETriggerEvent::Completed, this, &ThisClass::StopFire);
 	}
 }
 
@@ -231,6 +242,7 @@ void ASPlayerCharacter::InputMove(const FInputActionValue& InValue)
 	}
 
 	FVector2D MovementVector = InValue.Get<FVector2D>();
+
 
 	switch (CurrentViewMode)
 	{
@@ -245,6 +257,9 @@ void ASPlayerCharacter::InputMove(const FInputActionValue& InValue)
 
 		AddMovementInput(ForwardVector, MovementVector.X);
 		AddMovementInput(RightVector, MovementVector.Y);
+
+		ForwardInputValue = MovementVector.X;
+		RightInputValue = MovementVector.Y;
 
 		break;
 	}
@@ -335,6 +350,7 @@ void ASPlayerCharacter::InputQuickSlot01(const FInputActionValue& InValue)
 		{
 			AnimInstance->Montage_Play(WeaponInstance->GetEquipAnimMontage());
 		}
+		bHasWeapon = true;
 	}
 }
 
@@ -356,6 +372,7 @@ void ASPlayerCharacter::InputQuickSlot02(const FInputActionValue& InValue)
 
 		WeaponInstance->Destroy();
 		WeaponInstance = nullptr;
+		bHasWeapon = false;
 	}
 }
 
@@ -366,23 +383,9 @@ void ASPlayerCharacter::InputAttack(const FInputActionValue& InValue)
 		return;
 	}
 
-	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
-	checkf(IsValid(AnimInstance) == true, TEXT("Invalid AnimInstance"));
-
-	if (IsValid(WeaponInstance) == true)
+	if (bIsTriggerToggle == false)
 	{
-		if (IsValid(WeaponInstance->GetMeleeAttackMontage()) == true)
-		{
-			if (0 == CurrentComboCount)
-			{
-				BeginAttack();
-			}
-			else
-			{
-				ensure(FMath::IsWithinInclusive<int32>(CurrentComboCount, 1, MaxComboCount));
-				bIsAttackKeyPressed = true;
-			}
-		}
+		TryFire();
 	}
 }
 
@@ -393,5 +396,138 @@ void ASPlayerCharacter::InputMenu(const FInputActionValue& InValue)
 	{
 		PlayerController->ToggleInGameMenu();
 	}
+}
+
+void ASPlayerCharacter::StartIronSight(const FInputActionValue& InValue)
+{
+	TargetFOV = 45.f;
+}
+
+void ASPlayerCharacter::EndIronSight(const FInputActionValue& InValue)
+{
+	TargetFOV = 70.f;
+}
+
+void ASPlayerCharacter::ToggleTrigger(const FInputActionValue& InValue)
+{
+	bIsTriggerToggle = !bIsTriggerToggle;
+}
+
+void ASPlayerCharacter::StartFire(const FInputActionValue& InValue)
+{
+	if (bIsTriggerToggle == true)
+	{
+		GetWorldTimerManager().SetTimer(BetweenShotsTimer, this, &ThisClass::TryFire, TimeBetweenFire, true);
+	}
+}
+
+void ASPlayerCharacter::StopFire(const FInputActionValue& InValue)
+{
+	GetWorldTimerManager().ClearTimer(BetweenShotsTimer);
+}
+
+void ASPlayerCharacter::TryFire()
+{
+	APlayerController* PlayerController = GetController<APlayerController>();
+	if (IsValid(PlayerController) == true && IsValid(WeaponInstance) == true)
+	{
+#pragma region CaculateTargetTransform
+		float FocalDistance = 400.f;
+		FVector FocalLocation;
+		FVector CameraLocation;
+		FRotator CameraRotation;
+
+		PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+		FVector AimDirectionFromCamera = CameraRotation.Vector().GetSafeNormal();
+		FocalLocation = CameraLocation + (AimDirectionFromCamera * FocalDistance);
+
+		FVector WeaponMuzzleLocation = WeaponInstance->GetMesh()->GetSocketLocation(TEXT("MuzzleFlash"));
+		FVector FinalFocalLocation = FocalLocation + (((WeaponMuzzleLocation - FocalLocation) | AimDirectionFromCamera) * AimDirectionFromCamera);
+
+		FTransform TargetTransform = FTransform(CameraRotation, FinalFocalLocation);
+
+		if (ShowAttackDebug == 1)
+		{
+			DrawDebugSphere(GetWorld(), WeaponMuzzleLocation, 2.f, 16, FColor::Red, false, 60.f);
+
+			DrawDebugSphere(GetWorld(), CameraLocation, 2.f, 16, FColor::Yellow, false, 60.f);
+
+			DrawDebugSphere(GetWorld(), FinalFocalLocation, 2.f, 16, FColor::Magenta, false, 60.f);
+
+			// (WeaponLoc - FocalLoc)
+			DrawDebugLine(GetWorld(), FocalLocation, WeaponMuzzleLocation, FColor::Yellow, false, 60.f, 0, 2.f);
+
+			// AimDir
+			DrawDebugLine(GetWorld(), CameraLocation, FinalFocalLocation, FColor::Blue, false, 60.f, 0, 2.f);
+
+			// Project Direction Line
+			DrawDebugLine(GetWorld(), WeaponMuzzleLocation, FinalFocalLocation, FColor::Red, false, 60.f, 0, 2.f);
+		}
+
+#pragma endregion
+
+#pragma region PerformLineTracing
+
+		FVector BulletDirection = TargetTransform.GetUnitAxis(EAxis::X);
+		FVector StartLocation = TargetTransform.GetLocation();
+		FVector EndLocation = StartLocation + BulletDirection * WeaponInstance->GetMaxRange();
+
+		FHitResult HitResult;
+		FCollisionQueryParams TraceParams(NAME_None, false, this);
+		TraceParams.AddIgnoredActor(WeaponInstance);
+
+		bool IsCollided = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_GameTraceChannel2, TraceParams);
+		if (IsCollided == false)
+		{
+			HitResult.TraceStart = StartLocation;
+			HitResult.TraceEnd = EndLocation;
+		}
+
+		if (ShowAttackDebug == 2)
+		{
+			if (IsCollided == true)
+			{
+				DrawDebugSphere(GetWorld(), StartLocation, 2.f, 16, FColor::Red, false, 60.f);
+
+				DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 2.f, 16, FColor::Green, false, 60.f);
+
+				DrawDebugLine(GetWorld(), StartLocation, HitResult.ImpactPoint, FColor::Blue, false, 60.f, 0, 2.f);
+			}
+			else
+			{
+				DrawDebugSphere(GetWorld(), StartLocation, 2.f, 16, FColor::Red, false, 60.f);
+
+				DrawDebugSphere(GetWorld(), EndLocation, 2.f, 16, FColor::Green, false, 60.f);
+
+				DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Blue, false, 60.f, 0, 2.f);
+			}
+		}
+
+#pragma endregion
+
+		if (IsCollided == true)
+		{
+			ASCharacter* HittedCharacter = Cast<ASCharacter>(HitResult.GetActor());
+			if (IsValid(HittedCharacter) == true)
+			{
+				FDamageEvent DamageEvent;
+				HittedCharacter->TakeDamage(10.f, DamageEvent, GetController(), this);
+			}
+		}	
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance) == true)
+		{
+			if (AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleFireAnimMontage()) == false)
+			{
+				AnimInstance->Montage_Play(WeaponInstance->GetRifleFireAnimMontage());
+			}
+		}
+		if (IsValid(FireShake) == true)
+		{
+			PlayerController->ClientStartCameraShake(FireShake);
+		}
+	}
+
 }
 

@@ -37,4 +37,8 @@ private:
 	TObjectPtr<UUserWidget> InGameMenuInstance;
 
 	bool bIsInGameMenuOn = false;
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ASPlayerController, Meta = (AllowPrivateAccess))
+	TSubclassOf<UUserWidget> CrosshairUIClass;
 };

@@ -52,6 +52,17 @@ void AMyPlayerController::BeginPlay()
             InGameMenuInstance->SetVisibility(ESlateVisibility::Collapsed);
         }
     }
+
+    if (IsValid(CrosshairUIClass) == true)
+    {
+        UUserWidget* CrosshairUIInstance = CreateWidget<UUserWidget>(this, CrosshairUIClass);
+        if (IsValid(CrosshairUIInstance) == true)
+        {
+            CrosshairUIInstance->AddToViewport(1);
+
+            CrosshairUIInstance->SetVisibility(ESlateVisibility::Visible);
+        }
+    }
 }
 
 void AMyPlayerController::ToggleInGameMenu()

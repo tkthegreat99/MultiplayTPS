@@ -3,6 +3,7 @@
 
 #include "Item/SWeaponActor.h"
 
+
 ASWeaponActor::ASWeaponActor()
 {
 	PrimaryActorTick.bCanEverTick = false;

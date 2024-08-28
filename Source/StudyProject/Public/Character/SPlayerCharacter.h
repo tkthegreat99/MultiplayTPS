@@ -12,7 +12,6 @@ class USpringArmComponent;
 class UCameraComponent;
 class USInputConfig;
 class UInputMappingContext;
-//class ASWeaponActor;
 class UAnimMontage;
 class UParticleSystemComponent;
 struct FStreamableHandle;
@@ -41,19 +40,7 @@ public:
 
 	UParticleSystemComponent* GetParticleSystem() const { return ParticleSystemComponent; }
 
-	/*
-	int32 GetMaxKillCount() const { return MaxKillCount; }
-
-	void SetMaxKillCount(int32 InMaxKillCount) { MaxKillCount = InMaxKillCount; }
-
-	int32 GetCurrentKillCount() const { return CurrentKillCount; }
-
-	void AddCurrentKillCount(int32 InCurrentKillCount);
-	*/
-
 public:
-
-	//static int32 ShowAttackDebug;
 
 	ASPlayerCharacter();
 
@@ -69,14 +56,11 @@ public:
 
 	float GetRightInputValue() const { return RightInputValue; }
 
-	//UFUNCTION()
-	//void OnMeleeAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	float GetCurrentAimPitch() const { return CurrentAimPitch; }
 
-	//UFUNCTION()
-	//void OnCheckHit();
+	float GetCurrentAimYaw() const { return CurrentAimYaw; }
 
-	//virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
-
+	bool GetCurrentWeaponState() const { return bHasWeapon;  }
 
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
@@ -89,6 +73,12 @@ private:
 	void InputQuickSlot02(const FInputActionValue& InValue);
 	void InputAttack(const FInputActionValue& InValue);
 	void InputMenu(const FInputActionValue& InValue);
+	void StartIronSight(const FInputActionValue& InValue);
+	void EndIronSight(const FInputActionValue& InValue);
+	void ToggleTrigger(const FInputActionValue& InValue);
+	void StartFire(const FInputActionValue& InValue);
+	void StopFire(const FInputActionValue& InValue);
+
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
@@ -109,11 +99,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
 	float RightInputValue;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
-	//TSubclassOf<ASWeaponActor> WeaponClass;
-
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
-	//TObjectPtr<ASWeaponActor> WeaponInstance;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = ASPlayerCharacter, Meta = (AllowPrivateAccess = true))
+	TSubclassOf<UCameraShakeBase> FireShake;
 
 protected:
 
@@ -133,45 +120,35 @@ protected:
 
 	TSharedPtr<FStreamableHandle> AssetStreamableHandle = nullptr;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
-	//float MeleeAttackRange = 50.f;
+	float TargetFOV = 70.f;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
-	//float MeleeAttackRadius = 20.f;
+	float CurrentFOV = 70.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Meta = (AllowPrivateAccess))
+	float FirePerMinute = 1200;
+
+	bool bIsTriggerToggle = false;
+
+	FTimerHandle BetweenShotsTimer;
+
+	float TimeBetweenFire;
+
+	float CurrentAimPitch = 0.f;
+
+	float CurrentAimYaw = 0.f;
+
+	bool bHasWeapon = false;
+
 private:
+	void TryFire();
 
-	//void BeginCombo();
+	
 
-	//UFUNCTION()
-	//void OnCheckAttackInput();
-
-	//UFUNCTION()
-	//void EndCombo(UAnimMontage* InMontage, bool bInterruped);
 
 private:
-
-	//bool bIsNowAttacking = false;
-
-	//FString AttackAnimMontageSectionName = FString(TEXT("Attack"));
-
-	//int32 MaxComboCount = 3;
-
-	//int32 CurrentComboCount = 0;
-
-	//bool bIsAttackKeyPressed = false;
-
-	//FOnMontageEnded OnMeleeAttackMontageEndedDelegate;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
 	TObjectPtr<UParticleSystemComponent> ParticleSystemComponent;
 
-	/*
+	
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess = true))
-	int32 CurrentKillCount = 0;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess = true))
-	int32 MaxKillCount = 99;
-
-	*/
 };

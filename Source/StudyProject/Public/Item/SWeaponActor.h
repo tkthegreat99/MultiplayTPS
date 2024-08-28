@@ -29,6 +29,10 @@ public:
 
 	UAnimMontage* GetUnequipAnimMontage() const { return UnequipAnimMontage; }
 
+	float GetMaxRange() const { return MaxRange; }
+
+	UAnimMontage* GetRifleFireAnimMontage() const { return RifleFireAnimMontage; }
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	TObjectPtr<USkeletalMeshComponent> Mesh;
@@ -48,5 +52,11 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
 	TObjectPtr<UAnimMontage> UnequipAnimMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess, Units = cm))
+	float MaxRange = 25000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
+	TObjectPtr<UAnimMontage> RifleFireAnimMontage;
 
 };
