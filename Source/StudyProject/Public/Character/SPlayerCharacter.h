@@ -80,6 +80,7 @@ private:
 	void ToggleTrigger(const FInputActionValue& InValue);
 	void StartFire(const FInputActionValue& InValue);
 	void StopFire(const FInputActionValue& InValue);
+	void SpawnLandMine(const FInputActionValue& InValue);
 
 
 protected:
@@ -103,6 +104,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = ASPlayerCharacter, Meta = (AllowPrivateAccess = true))
 	TSubclassOf<UCameraShakeBase> FireShake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ASPlayerCharacter, Meta = (AllowPrivateAccess = true))
+	TSubclassOf<AActor> LandMineClass;
 
 protected:
 
@@ -154,7 +158,8 @@ protected:
 private:
 	void TryFire();
 
-	
+	UFUNCTION(Server, Reliable, WithValidation)
+	void SpawnLandMine_Server();
 
 
 private:

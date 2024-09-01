@@ -16,6 +16,7 @@
 #include "Controller/MyPlayerController.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/DamageEvents.h"
+#include "WorldStatic/SLandMine.h"
 /*
 #include "SPlayerCharacterSettings.h"
 #include "Engine/AssetManager.h"
@@ -36,13 +37,15 @@ ASPlayerCharacter::ASPlayerCharacter()
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(SpringArmComponent);
-	CameraComponent->SetRelativeLocation(FVector(140.f, 70.f, 60.f));
+	//CameraComponent->SetRelativeLocation(FVector(140.f, 70.f, 60.f));
 
 	ParticleSystemComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleSystemComponent"));
 	ParticleSystemComponent->SetupAttachment(GetRootComponent());
 	ParticleSystemComponent->SetAutoActivate(false);
 
 	TimeBetweenFire = 60.f / FirePerMinute;
+
+	bUseControllerRotationYaw = true;
 }
 
 void ASPlayerCharacter::BeginPlay()
@@ -61,30 +64,15 @@ void ASPlayerCharacter::BeginPlay()
 
 	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
 	
-	/*
-	const USPlayerCharacterSettings* CDO = GetDefault<USPlayerCharacterSettings>();
-	int32 RandIndex = FMath::RandRange(0, CDO->PlayerCharacterMeshMaterialPaths.Num() - 1);
-	CurrentPlayerCharacterMeshMaterialPath = CDO->PlayerCharacterMeshMaterialPaths[RandIndex];
-	AssetStreamableHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(
-		CurrentPlayerCharacterMeshMaterialPath,
-		FStreamableDelegate::CreateLambda([this]() -> void
-	{
-		AssetStreamableHandle->ReleaseHandle();
-		TSoftObjectPtr<UMaterial> LoadedMaterialInstanceAsset(CurrentPlayerCharacterMeshMaterialPath);
-		if (LoadedMaterialInstanceAsset.IsValid() == true)
-		{
-			//GetMesh()->SetMaterial(0, LoadedMaterialInstanceAsset.Get());
-		}
-	})
-	);
-	*/
+	//SetViewMode(EViewMode::BackView);
+	SetViewMode(EViewMode::TPSView);
 }
 
 void ASPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-	//SetViewMode(EViewMode::TPSView);
-	SetViewMode(EViewMode::BackView);
+	SetViewMode(EViewMode::TPSView);
+	//SetViewMode(EViewMode::BackView);
 }
 
 void ASPlayerCharacter::Tick(float DeltaSeconds)
@@ -279,6 +267,7 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Trigger, ETriggerEvent::Started, this, &ThisClass::ToggleTrigger);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Attack, ETriggerEvent::Started, this, &ThisClass::StartFire);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Attack, ETriggerEvent::Completed, this, &ThisClass::StopFire);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->LandMine, ETriggerEvent::Started, this, &ThisClass::SpawnLandMine);
 	}
 }
 
@@ -474,6 +463,11 @@ void ASPlayerCharacter::StopFire(const FInputActionValue& InValue)
 	GetWorldTimerManager().ClearTimer(BetweenShotsTimer);
 }
 
+void ASPlayerCharacter::SpawnLandMine(const FInputActionValue& InValue)
+{
+	SpawnLandMine_Server();
+}
+
 void ASPlayerCharacter::TryFire()
 {
 	APlayerController* PlayerController = GetController<APlayerController>();
@@ -587,6 +581,21 @@ void ASPlayerCharacter::TryFire()
 		}
 	}
 
+}
+
+bool ASPlayerCharacter::SpawnLandMine_Server_Validate()
+{
+	return true;
+}
+
+void ASPlayerCharacter::SpawnLandMine_Server_Implementation()
+{
+	if (true == ::IsValid(LandMineClass))
+	{
+		FVector SpawnedLocation = (GetActorLocation() + GetActorForwardVector() * 200.f) - FVector(0.f, 0.f, 90.f);
+		ASLandMine* SpawnedLandMine = GetWorld()->SpawnActor<ASLandMine>(LandMineClass, SpawnedLocation, FRotator::ZeroRotator);
+		SpawnedLandMine->SetOwner(GetController());
+	}
 }
 
 void ASPlayerCharacter::OnHittedRagdollRestoreTimerElapsed()

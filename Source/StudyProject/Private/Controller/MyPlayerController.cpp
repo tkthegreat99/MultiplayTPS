@@ -8,11 +8,20 @@
 #include "Character/SCharacter.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/UserWidget.h"
+#include "Character/SPlayerCharacter.h"
 
 void AMyPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+    FInputModeGameOnly InputModeGameOnly;
+    SetInputMode(InputModeGameOnly);
+
+       
+    if (HasAuthority() == true)
+    {
+        return;
+    }
     
 
     if (IsValid(HUDWidgetClass) == true)
@@ -35,8 +44,6 @@ void AMyPlayerController::BeginPlay()
                 if (IsValid(StatComponent) == true)
                 {
                     HUDWidget->BindStatComponent(StatComponent);
-                    FInputModeGameOnly Mode;
-                    SetInputMode(Mode);
                 }
             }
         }
@@ -74,9 +81,9 @@ void AMyPlayerController::ToggleInGameMenu()
         InGameMenuInstance->SetVisibility(ESlateVisibility::Visible);
 
         FInputModeUIOnly Mode;
-        Mode.SetWidgetToFocus(InGameMenuInstance->GetCachedWidget());
         SetInputMode(Mode);
-
+        Mode.SetWidgetToFocus(InGameMenuInstance->GetCachedWidget());
+      
         SetPause(true); 
      
         bShowMouseCursor = true;

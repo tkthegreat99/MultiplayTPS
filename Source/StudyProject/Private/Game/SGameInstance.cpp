@@ -6,7 +6,10 @@
 
 void USGameInstance::Init()
 {
+
 	Super::Init();
+
+
 	if (IsValid(CharacterStatDataTable) == false || CharacterStatDataTable->GetRowMap().Num() <= 0)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Not enuough data in CharacterStatDataTable."));

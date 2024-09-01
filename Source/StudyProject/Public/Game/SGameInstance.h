@@ -21,7 +21,8 @@ struct FSStatTableRow : public FTableRowBase
 public:
 	FSStatTableRow()
 	{
-
+		MaxHP = 100.f;
+		MaxKillCount = 100.f;
 	}
 
 public:

@@ -21,6 +21,7 @@ void USStatComponent::BeginPlay()
 		{
 			float NewMaxHP = GameInstance->GetCharacterStatDataTableRow(1)->MaxHP;
 			SetMaxHP(NewMaxHP);
+			UE_LOG(LogTemp, Log, TEXT("Hui"));
 			SetCurrentHP(MaxHP);
 		}
 	}
