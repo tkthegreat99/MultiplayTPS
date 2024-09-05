@@ -17,11 +17,12 @@
 #include "Engine/EngineTypes.h"
 #include "Engine/DamageEvents.h"
 #include "WorldStatic/SLandMine.h"
-/*
-#include "SPlayerCharacterSettings.h"
-#include "Engine/AssetManager.h"
-#include "Engine/StreamableManager.h"
-*/
+#include "Net/UnrealNetwork.h"
+#include "Engine/Engine.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Game/SPlayerState.h"
+
 
 
 
@@ -46,6 +47,8 @@ ASPlayerCharacter::ASPlayerCharacter()
 	TimeBetweenFire = 60.f / FirePerMinute;
 
 	bUseControllerRotationYaw = true;
+	WeaponInstance = nullptr;
+	OnRep_WeaponInstance();
 }
 
 void ASPlayerCharacter::BeginPlay()
@@ -61,6 +64,8 @@ void ASPlayerCharacter::BeginPlay()
 			Subsystem->AddMappingContext(PlayerCharacterInputMappingContext, 0);
 		}
 	}
+	//ASPlayerState* SPlayerState = GetPlayerState<ASPlayerState>();
+	//SPlayerState->InitPlayerState();
 
 	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
 	
@@ -84,9 +89,28 @@ void ASPlayerCharacter::Tick(float DeltaSeconds)
 
 	if (IsValid(GetController()) == true)
 	{
+		PreviousAimPitch = CurrentAimPitch;
+		PreviousAimYaw = CurrentAimYaw;
+
 		FRotator ControlRotation = GetController()->GetControlRotation();
 		CurrentAimPitch = ControlRotation.Pitch;
 		CurrentAimYaw = ControlRotation.Yaw;
+	}
+
+	if (PreviousAimPitch != CurrentAimPitch || PreviousAimYaw != CurrentAimYaw)
+	{
+		if (GetWorld()->GetFirstPlayerController()->IsLocalController())
+		{
+			UpdateAimValue_Server(CurrentAimPitch, CurrentAimYaw);
+		}
+	}
+
+	if (PreviousForwardInputValue != ForwardInputValue || PreviousRightInputValue != RightInputValue)
+	{
+		if (GetWorld()->GetFirstPlayerController()->IsLocalController())
+		{
+			UpdateInputValue_Server(ForwardInputValue, RightInputValue);
+		}
 	}
 
 	if (true == bIsNowRagdollBlending)
@@ -224,27 +248,36 @@ float ASPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 {
 	float FinalDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
-	if (IsValid(GetStatComponent()) == false)
-	{
-		return FinalDamage;
-	}
-
-	if (GetStatComponent()->GetCurrentHP() < KINDA_SMALL_NUMBER)
-	{
-		GetMesh()->SetSimulatePhysics(true);
-	}
-
-	else
-	{
-		FName PivotBoneName = FName(TEXT("spine_01"));
-		GetMesh()->SetAllBodiesBelowSimulatePhysics(PivotBoneName, true);
-		TargetRagDollBlendWeight = 1.f;
-
-		HittedRagdollRestoreTimerDelegate.BindUObject(this, &ThisClass::OnHittedRagdollRestoreTimerElapsed);
-		GetWorld()->GetTimerManager().SetTimer(HittedRagdollRestoreTimer, HittedRagdollRestoreTimerDelegate, 1.f, false);
-	}
+	PlayRagdoll_NetMulticast();
 
 	return FinalDamage;
+}
+
+void ASPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, ForwardInputValue);
+	DOREPLIFETIME(ThisClass, RightInputValue);
+	DOREPLIFETIME(ThisClass, CurrentAimPitch);
+	DOREPLIFETIME(ThisClass, CurrentAimYaw);
+}
+
+void ASPlayerCharacter::SetMeshMaterial(const EPlayerTeam& InPlayerTeam)
+{
+	switch (InPlayerTeam)
+	{
+	case EPlayerTeam::Black:
+		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Black"), true, true, FLinearColor::Green, 2.f);
+		GetMesh()->SetMaterial(0, BlackMaterial);
+		break;
+	case EPlayerTeam::White:
+		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("White"), true, true, FLinearColor::Green, 2.f);
+		GetMesh()->SetMaterial(0, WhiteMaterial);
+		break;
+	default:
+		break;
+	}
 }
 
 void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -367,49 +400,14 @@ void ASPlayerCharacter::InputChangeView(const FInputActionValue& InValue)
 
 void ASPlayerCharacter::InputQuickSlot01(const FInputActionValue& InValue)
 {
-	FName WeaponSocket(TEXT("WeaponSocket"));
-	if (GetMesh()->DoesSocketExist(WeaponSocket) == true && IsValid(WeaponInstance) == false)
-	{
-		WeaponInstance = GetWorld()->SpawnActor<ASWeaponActor>(WeaponClass, FVector::ZeroVector, FRotator::ZeroRotator);
-		if (IsValid(WeaponInstance) == true)
-		{
-			WeaponInstance->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
-		}
-
-		TSubclassOf<UAnimInstance> RifleCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
-		if (IsValid(RifleCharacterAnimLayer) == true)
-		{
-			GetMesh()->LinkAnimClassLayers(RifleCharacterAnimLayer);
-		}
-
-		USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
-		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetEquipAnimMontage()))
-		{
-			AnimInstance->Montage_Play(WeaponInstance->GetEquipAnimMontage());
-		}
-		bHasWeapon = true;
-	}
+	SpawnWeaponInstance_Server();
 }
 
 void ASPlayerCharacter::InputQuickSlot02(const FInputActionValue& InValue)
 {
 	if (IsValid(WeaponInstance) == true)
 	{
-		TSubclassOf<UAnimInstance> UnarmedCharacterAnimLayer = WeaponInstance->GetUnarmedCharacterAnimLayer();
-		if (IsValid(UnarmedCharacterAnimLayer) == true)
-		{
-			GetMesh()->LinkAnimClassLayers(UnarmedCharacterAnimLayer);
-		}
-
-		USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
-		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetUnequipAnimMontage()))
-		{
-			AnimInstance->Montage_Play(WeaponInstance->GetUnequipAnimMontage());
-		}
-
-		WeaponInstance->Destroy();
-		WeaponInstance = nullptr;
-		bHasWeapon = false;
+		DestroyWeaponInstance_Server();
 	}
 }
 
@@ -548,25 +546,8 @@ void ASPlayerCharacter::TryFire()
 
 #pragma endregion
 
-		if (IsCollided == true)
-		{
-			ASCharacter* HittedCharacter = Cast<ASCharacter>(HitResult.GetActor());
-			if (IsValid(HittedCharacter) == true)
-			{
-				FDamageEvent DamageEvent;
+		ApplyDamageAndDrawLine_Server(HitResult);
 
-				FString BoneNameString = HitResult.BoneName.ToString();
-
-				if (true == BoneNameString.Equals(FString(TEXT("HEAD")), ESearchCase::IgnoreCase))
-				{
-					HittedCharacter->TakeDamage(100.f, DamageEvent, GetController(), this);
-				}
-				else
-				{
-					HittedCharacter->TakeDamage(10.f, DamageEvent, GetController(), this);
-				}
-			}
-		}	
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance) == true)
 		{
@@ -575,12 +556,36 @@ void ASPlayerCharacter::TryFire()
 				AnimInstance->Montage_Play(WeaponInstance->GetRifleFireAnimMontage());
 			}
 		}
-		if (IsValid(FireShake) == true)
+		PlayAttackMontage_Server();
+		if (IsValid(FireShake) == true && GetOwner() == UGameplayStatics::GetPlayerController(this, 0))
 		{
 			PlayerController->ClientStartCameraShake(FireShake);
 		}
 	}
+	
 
+}
+
+void ASPlayerCharacter::DestroyWeaponInstance_Server_Implementation()
+{
+	if (IsValid(WeaponInstance) == true)
+	{
+		WeaponInstance->Destroy();
+		WeaponInstance = nullptr;
+	}
+}
+
+void ASPlayerCharacter::SpawnWeaponInstance_Server_Implementation()
+{
+	FName WeaponSocket(TEXT("WeaponSocket"));
+	if (GetMesh()->DoesSocketExist(WeaponSocket) == true && IsValid(WeaponInstance) == false)
+	{
+		WeaponInstance = GetWorld()->SpawnActor<ASWeaponActor>(WeaponClass, FVector::ZeroVector, FRotator::ZeroRotator);
+		if (IsValid(WeaponInstance) == true)
+		{
+			WeaponInstance->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+		}
+	}
 }
 
 bool ASPlayerCharacter::SpawnLandMine_Server_Validate()
@@ -598,11 +603,132 @@ void ASPlayerCharacter::SpawnLandMine_Server_Implementation()
 	}
 }
 
+
+void ASPlayerCharacter::OnRep_WeaponInstance()
+{
+	if (IsValid(WeaponInstance) == true)
+	{
+		UKismetSystemLibrary::PrintString(GetWorld(), TEXT("WeaponInstance is Valid"), true, true, FLinearColor::Green, 2.0f);
+		TSubclassOf<UAnimInstance> RifleCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
+		if (IsValid(RifleCharacterAnimLayer) == true)
+		{
+			UKismetSystemLibrary::PrintString(GetWorld(), TEXT("RifleCharacterAnimLayer is Valid"), true, true, FLinearColor::Green, 2.0f);
+			GetMesh()->LinkAnimClassLayers(RifleCharacterAnimLayer);
+		}
+
+		USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetEquipAnimMontage()))
+		{
+			AnimInstance->Montage_Play(WeaponInstance->GetEquipAnimMontage());
+		}
+
+		UnarmedCharacterAnimLayer = WeaponInstance->GetUnarmedCharacterAnimLayer();
+		UnequipAnimMontage = WeaponInstance->GetUnequipAnimMontage();
+	}
+	else
+	{
+		if (IsValid(UnarmedCharacterAnimLayer) == true)
+		{
+			GetMesh()->LinkAnimClassLayers(UnarmedCharacterAnimLayer);
+			UKismetSystemLibrary::PrintString(GetWorld(), TEXT("UnarmedCharacterAnimLayer is Valid"), true, true, FLinearColor::Green, 2.0f);
+		}
+
+		USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+		if (IsValid(UnequipAnimMontage) == true)
+		{
+			AnimInstance->Montage_Play(UnequipAnimMontage);
+		}
+	}
+}
+
+void ASPlayerCharacter::UpdateAimValue_Server_Implementation(const float& InAimPitchValue, const float& InAimYawValue)
+{
+	CurrentAimPitch = InAimPitchValue;
+	CurrentAimYaw = InAimYawValue;
+}
+
+void ASPlayerCharacter::UpdateInputValue_Server_Implementation(const float& InForwardInputValue, const float& InRightInputValue)
+{
+	ForwardInputValue = InForwardInputValue;
+	RightInputValue = InRightInputValue;
+}
+
 void ASPlayerCharacter::OnHittedRagdollRestoreTimerElapsed()
 {
 	FName PivotBoneName = FName(TEXT("spine_01"));
 	TargetRagDollBlendWeight = 0.f;
 	CurrentRagDollBlendWeight = 1.f;
 	bIsNowRagdollBlending = true;
+}
+
+void ASPlayerCharacter::PlayRagdoll_NetMulticast_Implementation()
+{
+	if (IsValid(GetStatComponent()) == false)
+	{
+		return;
+	}
+
+	if (GetStatComponent()->GetCurrentHP() < KINDA_SMALL_NUMBER)
+	{
+		GetMesh()->SetSimulatePhysics(true);
+	}
+	else
+	{
+		FName PivotBoneName = FName(TEXT("spine_01"));
+		GetMesh()->SetAllBodiesBelowSimulatePhysics(PivotBoneName, true);
+		TargetRagDollBlendWeight = 1.f;
+		HittedRagdollRestoreTimerDelegate.BindUObject(this, &ThisClass::OnHittedRagdollRestoreTimerElapsed);
+		GetWorld()->GetTimerManager().SetTimer(HittedRagdollRestoreTimer, HittedRagdollRestoreTimerDelegate, 1.f, false);
+	}
+}
+
+void ASPlayerCharacter::DrawLine_NetMulticast_Implementation(const FVector& InDrawStart, const FVector& InDrawEnd)
+{
+	if (GetWorld()->GetFirstPlayerController()->IsLocalController())
+	{
+		DrawDebugLine(GetWorld(), WeaponInstance->GetMesh()->GetSocketLocation(TEXT("MuzzleFlash")), InDrawEnd, FColor(255, 255, 255, 64), false, 0.1f, 0U, 0.5f);
+	}
+}
+
+void ASPlayerCharacter::ApplyDamageAndDrawLine_Server_Implementation(FHitResult HitResult)
+{
+	ASCharacter* HittedCharacter = Cast<ASCharacter>(HitResult.GetActor());
+	if (IsValid(HittedCharacter) == true)
+	{
+		FDamageEvent DamageEvent;
+
+		FString BoneNameString = HitResult.BoneName.ToString();
+
+		if (true == BoneNameString.Equals(FString(TEXT("HEAD")), ESearchCase::IgnoreCase))
+		{
+			HittedCharacter->TakeDamage(100.f, DamageEvent, GetController(), this);
+		}
+		else
+		{
+			HittedCharacter->TakeDamage(10.f, DamageEvent, GetController(), this);
+		}
+	}
+
+	DrawLine_NetMulticast(HitResult.TraceStart, HitResult.TraceEnd);
+}
+
+void ASPlayerCharacter::PlayAttackMontage_NetMulticast_Implementation()
+{
+	if (GetWorld()->GetFirstPlayerController()->IsLocalController() && GetOwner() != UGameplayStatics::GetPlayerController(this, 0))
+	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance) == true)
+		{
+			if (AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleFireAnimMontage()) == false)
+			{
+				AnimInstance->Montage_Play(WeaponInstance->GetRifleFireAnimMontage());
+			}
+		}
+	}
+}
+
+void ASPlayerCharacter::PlayAttackMontage_Server_Implementation()
+{
+	PlayAttackMontage_NetMulticast();
 }
 

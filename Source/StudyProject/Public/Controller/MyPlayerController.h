@@ -7,6 +7,7 @@
 #include "MyPlayerController.generated.h"
 
 class USHUD;
+class USGameResultWidget;
 /**
  * 
  */
@@ -21,6 +22,11 @@ public:
 		virtual void BeginPlay() override;
 
 		void ToggleInGameMenu();
+
+		virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+		void OnOwningCharacterDead();
+
 
 
 private:
@@ -38,7 +44,29 @@ private:
 
 	bool bIsInGameMenuOn = false;
 
+public:
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "ASPlayerController", Meta = (AllowPrivateAccess))
+	FText NotificationText;
+
+	UFUNCTION(Client, Reliable)
+	void ShowWinnerUI();
+
+	UFUNCTION(Client, Reliable)
+	void ShowLooserUI(int32 InRanking);
+
+	UFUNCTION(Client, Reliable)
+	void ReturnToLobby();
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ASPlayerController, Meta = (AllowPrivateAccess))
 	TSubclassOf<UUserWidget> CrosshairUIClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ASPlayerController, Meta = (AllowPrivateAccess))
+	TSubclassOf<UUserWidget> NotificationTextUIClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ASPlayerController, Meta = (AllowPrivateAccess))
+	TSubclassOf<USGameResultWidget> WinnerUIClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ASPlayerController, Meta = (AllowPrivateAccess))
+	TSubclassOf<USGameResultWidget> LooserUIClass;
 };

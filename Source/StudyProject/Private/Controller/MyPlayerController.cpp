@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
+#include "StudyProject/Game/SGameMode.h"
 #include "Controller/MyPlayerController.h"
 #include "UI/SHUD.h"
 #include "Game/SPlayerState.h"
@@ -9,6 +10,11 @@
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "Character/SPlayerCharacter.h"
+#include "Net/UnrealNetwork.h"
+#include "Engine/Engine.h"
+#include "Kismet/GameplayStatics.h"
+#include "UI/SGameResultWidget.h"
+#include "Components/TextBlock.h"
 
 void AMyPlayerController::BeginPlay()
 {
@@ -17,8 +23,7 @@ void AMyPlayerController::BeginPlay()
     FInputModeGameOnly InputModeGameOnly;
     SetInputMode(InputModeGameOnly);
 
-       
-    if (HasAuthority() == true)
+    if (!(GetWorld()->GetFirstPlayerController()->IsLocalController()))
     {
         return;
     }
@@ -34,6 +39,7 @@ void AMyPlayerController::BeginPlay()
             ASPlayerState* SPlayerState = GetPlayerState<ASPlayerState>();
             if (IsValid(SPlayerState) == true)
             {
+                
                 HUDWidget->BindPlayerState(SPlayerState);
             }
 
@@ -70,6 +76,17 @@ void AMyPlayerController::BeginPlay()
             CrosshairUIInstance->SetVisibility(ESlateVisibility::Visible);
         }
     }
+
+    if (IsValid(NotificationTextUIClass) == true)
+    {
+        UUserWidget* NotificationTextUI = CreateWidget<UUserWidget>(this, NotificationTextUIClass);
+        if (IsValid(NotificationTextUI) == true)
+        {
+            NotificationTextUI->AddToViewport(1);
+
+            NotificationTextUI->SetVisibility(ESlateVisibility::Visible);
+        }
+    }
 }
 
 void AMyPlayerController::ToggleInGameMenu()
@@ -100,4 +117,73 @@ void AMyPlayerController::ToggleInGameMenu()
     }
 
     bIsInGameMenuOn = !bIsInGameMenuOn;
+}
+
+void AMyPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+    DOREPLIFETIME(ThisClass, NotificationText);
+}
+
+void AMyPlayerController::OnOwningCharacterDead()
+{
+    ASGameMode* GameMode = Cast<ASGameMode>(UGameplayStatics::GetGameMode(this));
+    if ((GetWorld()->GetFirstPlayerController()->IsLocalController()) == false && IsValid(GameMode) == true)
+    {
+        GameMode->OnControllerDead(this);
+    }
+}
+
+void AMyPlayerController::ReturnToLobby_Implementation()
+{
+    if ((GetWorld()->GetFirstPlayerController()->IsLocalController()) == true)
+    { 
+        UGameplayStatics::OpenLevel(GetWorld(), FName(TEXT("Loading")), true, FString(TEXT("NextLevel=Lobby?Saved=false")));
+    }
+}
+
+void AMyPlayerController::ShowLooserUI_Implementation(int32 InRanking)
+{
+    if ((GetWorld()->GetFirstPlayerController()->IsLocalController()) == true)
+    {
+        if (IsValid(LooserUIClass) == true)
+        {
+            USGameResultWidget* LooserUI = CreateWidget<USGameResultWidget>(this, LooserUIClass);
+            if (IsValid(LooserUI) == true)
+            {
+                LooserUI->AddToViewport(3);
+                FString RankingString = FString::Printf(TEXT("#%02d"), InRanking);
+                LooserUI->RankingText->SetText(FText::FromString(RankingString));
+
+                FInputModeUIOnly Mode;
+                Mode.SetWidgetToFocus(LooserUI->GetCachedWidget());
+                SetInputMode(Mode);
+
+                bShowMouseCursor = true;
+            }
+        }
+    }
+}
+
+void AMyPlayerController::ShowWinnerUI_Implementation()
+{
+    if ((GetWorld()->GetFirstPlayerController()->IsLocalController()) == true)
+    {
+        if (IsValid(WinnerUIClass) == true)
+        {
+            USGameResultWidget* WinnerUI = CreateWidget<USGameResultWidget>(this, WinnerUIClass);
+            if (IsValid(WinnerUI) == true)
+            {
+                WinnerUI->AddToViewport(3);
+                WinnerUI->RankingText->SetText(FText::FromString(TEXT("#01")));
+
+                FInputModeUIOnly Mode;
+                Mode.SetWidgetToFocus(WinnerUI->GetCachedWidget());
+                SetInputMode(Mode);
+
+                bShowMouseCursor = true;
+            }
+        }
+    }
 }

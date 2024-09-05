@@ -3,6 +3,21 @@
 
 #include "Component/SStatComponent.h"
 #include "Game/SGameInstance.h"
+#include "Net/UnrealNetwork.h"
+#include "Engine/Engine.h"
+
+void USStatComponent::OnCurrentHPChanged_NetMulticast_Implementation(float InOldCurrentHP, float InNewCurrentHP)
+{
+	if (true == OnCurrentHPChangedDelegate.IsBound())
+	{
+		OnCurrentHPChangedDelegate.Broadcast(InOldCurrentHP, InNewCurrentHP);
+	}
+
+	if (InNewCurrentHP < KINDA_SMALL_NUMBER)
+	{
+		OnOutOfCurrentHPDelegate.Broadcast();
+	}
+}
 
 USStatComponent::USStatComponent()
 {
@@ -51,6 +66,16 @@ void USStatComponent::SetCurrentHP(float InCurrentHP)
 		OnOutOfCurrentHPDelegate.Broadcast();
 		CurrentHP = 0.f;
 	}
+
+	OnCurrentHPChanged_NetMulticast(CurrentHP, CurrentHP);
+}
+
+void USStatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, MaxHP);
+	DOREPLIFETIME(ThisClass, CurrentHP);
 }
 
 

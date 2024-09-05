@@ -9,6 +9,7 @@
 #include "Engine/AssetManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/StreamableManager.h"
+#include "Controller/SUIPlayerController.h"
 
 void UUW_LobbyLayout::NativeOnInitialized()
 {
@@ -21,26 +22,7 @@ void UUW_LobbyLayout::NativeOnInitialized()
     WhiteTeamButton.Get()->OnClicked.AddDynamic(this, &ThisClass::OnWhiteTeamButtonClicked);
     SubmitButton.Get()->OnClicked.AddDynamic(this, &ThisClass::OnSubmitButtonClicked);
 
-    const USPlayerCharacterSettings* CharacterSettings = GetDefault<USPlayerCharacterSettings>();
-    if (IsValid(CharacterSettings) == true)
-    {
-
-        
-        for (auto Path : CharacterSettings->PlayerCharacterMeshMaterialPaths)
-        {
-            StreamableHandles.Emplace(UAssetManager::GetStreamableManager().RequestAsyncLoad
-            (
-                Path,
-                FStreamableDelegate::CreateLambda([this, Path]() -> void
-            {
-                TSoftObjectPtr<UMaterial> LoadedMaterialInstanceAsset(Path);
-                LoadedMaterialInstanceAssets.Emplace(LoadedMaterialInstanceAsset);
-            })
-            )
-            );
-        }
-        
-    }
+    
 }
 
 void UUW_LobbyLayout::NativeDestruct()
@@ -58,12 +40,14 @@ void UUW_LobbyLayout::NativeDestruct()
 
 void UUW_LobbyLayout::OnBlackTeamButtonClicked()
 {
-    CurrentSkeletalMeshComponent->SetMaterial(0, LoadedMaterialInstanceAssets[0].Get());
+    CurrentSkeletalMeshComponent->SetMaterial(0, BlackMaterial);
+    SelectedTeam = 1;
 }
 
 void UUW_LobbyLayout::OnWhiteTeamButtonClicked()
 {
-    CurrentSkeletalMeshComponent->SetMaterial(0, LoadedMaterialInstanceAssets[1].Get());
+    CurrentSkeletalMeshComponent->SetMaterial(0, WhiteMaterial);
+    SelectedTeam = 2;
 }
 
 void UUW_LobbyLayout::OnSubmitButtonClicked()
@@ -73,6 +57,29 @@ void UUW_LobbyLayout::OnSubmitButtonClicked()
     {
         return;
     }
+    
+    const FString SavedDirectoryPath = FPaths::Combine(FPlatformMisc::ProjectDir(), TEXT("Saved"));
+    const FString SavedFileName(TEXT("PlayerInfo.txt"));
+    FString AbsoluteFilePath = FPaths::Combine(*SavedDirectoryPath, *SavedFileName);
+    FPaths::MakeStandardFilename(AbsoluteFilePath);
 
-    UGameplayStatics::OpenLevel(GetWorld(), TEXT("Loading"), true, FString(TEXT("NextLevel=Example")));
+    TSharedRef<FJsonObject> PlayerInfoJsonObject = MakeShared<FJsonObject>();
+    PlayerInfoJsonObject->SetStringField("playername", PlayerName);
+    PlayerInfoJsonObject->SetNumberField("team", SelectedTeam);
+
+    FString PlayerInfoJsonString;
+    TSharedRef<TJsonWriter<TCHAR>> JsonWriterArchive = TJsonWriterFactory<TCHAR>::Create(&PlayerInfoJsonString);
+    if (FJsonSerializer::Serialize(PlayerInfoJsonObject, JsonWriterArchive) == true)
+    {
+        FFileHelper::SaveStringToFile(PlayerInfoJsonString, *AbsoluteFilePath);
+    }
+
+    ASUIPlayerController* PlayerController = GetOwningPlayer<ASUIPlayerController>();
+    if (true == ::IsValid(PlayerController))
+    {
+        FText ServerIP = EditServerIP->GetText();
+        PlayerController->JoinServer(ServerIP.ToString());
+    }
+
+    UKismetSystemLibrary::PrintString(GetWorld(), TEXT("Server Login"), true, true, FLinearColor::Blue, 2.0f);
 }

@@ -20,38 +20,18 @@ class STUDYPROJECT_API ASCharacter : public ACharacter
 
 public:
 
-	/*
-
-	float GetMaxHP() const { return MaxHP; }
-
-	float GetCurrentHP() const { return CurrentHP; }
-
-	void SetMaxHP(float InMaxHP) { MaxHP = InMaxHP; }
-
-	void SetCurrentHP(float InCurrentHP) { CurrentHP = InCurrentHP; }
-
-	bool IsDead() const { return bIsDead; }
-
-	*/
-
 	USStatComponent* GetStatComponent() const { return StatComponent; }
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void SetWidget(UStudyWidget* InStudyWidget) {}
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 protected:
 
-	/*
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
-	float MaxHP = 200.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
-	float CurrentHP = 200.f;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess))
-	uint8 bIsDead : 1;
-	*/
-
+	UFUNCTION()
+	virtual void OnRep_WeaponInstance() {}
 
 
 
@@ -89,7 +69,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	TSubclassOf<ASWeaponActor> WeaponClass;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	UPROPERTY(ReplicatedUsing = OnRep_WeaponInstance, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	TObjectPtr<ASWeaponActor> WeaponInstance;
 
 	bool bIsNowAttacking = false;

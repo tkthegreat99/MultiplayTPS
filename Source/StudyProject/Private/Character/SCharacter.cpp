@@ -10,7 +10,11 @@
 #include "Animation/SAnimInstance.h"
 #include "Item/SWeaponActor.h"
 #include "Component/SStatComponent.h"
-
+#include "Net/UnrealNetwork.h"
+#include "Engine/Engine.h"
+#include "Controller/MyPlayerController.h"
+#include "Kismet/GameplayStatics.h"
+#include "Game/SGameState.h"
 
 
 int32 ASCharacter::ShowAttackDebug = 0;
@@ -30,6 +34,13 @@ void ASCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 
 	Super::EndPlay(EndPlayReason);
+}
+
+void ASCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, WeaponInstance);
 }
 
 ASCharacter::ASCharacter()
@@ -55,6 +66,7 @@ ASCharacter::ASCharacter()
 
 
 	StatComponent = CreateDefaultSubobject<USStatComponent>(TEXT("StatComponent"));
+	StatComponent->SetIsReplicated(true);
 }
 
 void ASCharacter::BeginPlay()
@@ -78,6 +90,13 @@ void ASCharacter::BeginPlay()
 float ASCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	float FinalDamageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	
+	ASGameState* SGameState = Cast<ASGameState>(UGameplayStatics::GetGameState(this));
+	if (IsValid(SGameState) == true && SGameState->MatchState != EMatchState::Playing)
+	{
+		return FinalDamageAmount;
+	}
+
 
 	StatComponent->SetCurrentHP(StatComponent->GetCurrentHP() - FinalDamageAmount);
 
@@ -210,5 +229,11 @@ void ASCharacter::OnCharacterDeath()
 {
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+
+	AMyPlayerController* PlayerController = GetController<AMyPlayerController>();
+	if (IsValid(PlayerController) == true && HasAuthority() == true)
+	{
+		PlayerController->OnOwningCharacterDead();
+	}
 }
 

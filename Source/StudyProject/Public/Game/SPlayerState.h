@@ -8,6 +8,15 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCurrentKillCountChangedDelegate, int32, InOldCurrentKillCount, int32, InNewCurrentKillCount);
 
+UENUM(BlueprintType)
+enum class EPlayerTeam : uint8
+{
+	None,
+	Black,
+	White,
+	End
+};
+
 /**
  * 
  */
@@ -18,6 +27,8 @@ class STUDYPROJECT_API ASPlayerState : public APlayerState
 
 public:
 	ASPlayerState();
+
+	EPlayerTeam GetPlayerTeam() const { return PlayerTeam; }
 
 	void InitPlayerState();
 
@@ -38,5 +49,8 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess = true))
 	int32 MaxKillCount = 99;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Meta = (AllowPrivateAccess = true))
+	EPlayerTeam PlayerTeam = EPlayerTeam::None;
 	
 };

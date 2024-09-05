@@ -23,8 +23,6 @@ void USAnimInstance::NativeInitializeAnimation()
 	bIsCrouching = false;
 	
 	bIsDead = false;
-
-	bHasWeapon = false;
 }
 
 void USAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -60,7 +58,6 @@ void USAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		}
 		ASPlayerCharacter* OwnerPlayerCharacter = Cast<ASPlayerCharacter>(OwnerCharacter);
 		if (IsValid(OwnerPlayerCharacter) == true) {
-			bHasWeapon = OwnerPlayerCharacter->GetCurrentWeaponState();
 
 			//UE_LOG(LogTemp, Log, TEXT("valid"));
 

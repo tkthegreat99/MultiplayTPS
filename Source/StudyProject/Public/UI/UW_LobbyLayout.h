@@ -11,6 +11,7 @@ class UButton;
 class UEditableText;
 struct FStreamableHandle;
 class UMaterialInstance;
+class UMaterial;
 
 /**
  * 
@@ -36,6 +37,10 @@ private:
 	void OnSubmitButtonClicked();
 
 protected:
+
+	uint8 SelectedTeam = 1;
+
+protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = USLobbyLevelUI, Meta = (AllowPrivateAccess, BindWidget))
 	TObjectPtr<UButton> BlackTeamButton;
 
@@ -52,6 +57,12 @@ protected:
 
 	TArray<TSharedPtr<FStreamableHandle>> StreamableHandles;
 
-	TArray<TSoftObjectPtr<UMaterial>> LoadedMaterialInstanceAssets;
-	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = USLobbyLevelUI, Meta = (AllowPrivateAccess))
+	TObjectPtr<UMaterial> BlackMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = USLobbyLevelUI, Meta = (AllowPrivateAccess))
+	TObjectPtr<UMaterial> WhiteMaterial;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = USLobbyLevelUI, Meta = (AllowPrivateAccess, BindWidget))
+	TObjectPtr<UEditableText> EditServerIP;
 };

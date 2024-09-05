@@ -62,8 +62,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SAnimInstance", meta = (AllowPrivateAccess))
 	uint8 bIsCrouching : 1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SAnimInstance", meta = (AllowPrivateAccess))
-	uint8 bHasWeapon : 1;
 
 	UFUNCTION()
 	void AnimNotify_CheckHit();

@@ -20,7 +20,7 @@ void UUW_TitleLayout::NativeConstruct()
 void UUW_TitleLayout::OnPlayButtonClicked()
 {
 	//UGameplayStatics::OpenLevel(GetWorld(), TEXT("ThirdPersonMap"));
-	UGameplayStatics::OpenLevel(GetWorld(), FName(TEXT("Loading")), true, FString(TEXT("NextLevel=Example")));
+	UGameplayStatics::OpenLevel(GetWorld(), FName(TEXT("Loading")), true, FString(TEXT("NextLevel=Lobby")));
 }
 
 void UUW_TitleLayout::OnExitButtonClicked()	

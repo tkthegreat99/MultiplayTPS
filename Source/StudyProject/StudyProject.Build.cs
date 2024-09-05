@@ -17,7 +17,8 @@ public class StudyProject : ModuleRules
 			"NavigationSystem", 
 			"AIModule", 
 			"GameplayTasks",
-			"UMG"
+			"UMG",
+			"Json"
 		});
         PrivateDependencyModuleNames.AddRange(new string[]
         { 
